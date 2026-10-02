@@ -1,6 +1,10 @@
 const db = require('../services/db');
 const { askChatGPT } = require('../services/openaiService');
 const { generateShoppingListFromMeals } = require('../services/shoppingListService');
+const { planWeeklyMenu } = require('../services/menuPlannerService');
+const { searchKnowledge, formatKnowledgeSnippets } = require('../services/knowledgeBaseService');
+const { adaptRecipe } = require('../services/recipeAdaptationService');
+const { MENU_LLM_FALLBACK_ENABLED } = require('../config');
 const NodeCache = require('node-cache');
 
 const JSON5 = require('json5');
@@ -233,21 +237,22 @@ async function saveMenuToDatabase(userId, dailyCalories, parsedMenu) {
       const day = dayData.dayNumber;
       for (const m of dayData.meals ?? []) {
         values.push(
-          menuId, day, m.mealTime, m.name,
-          m.calories, m.protein, m.fat, m.carbs, m.portionWeight
+          menuId, day, m.mealTime, m.recipeId || null, m.name,
+          m.calories, m.protein, m.fat, m.carbs, m.portionWeight,
+          m.recipe ? JSON.stringify(m.recipe) : null
         );
         placeholders.push(
-          `($${idx++},$${idx++},$${idx++},$${idx++},$${idx++},$${idx++},$${idx++},$${idx++},$${idx++})`
+          `($${idx++},$${idx++},$${idx++},$${idx++},$${idx++},$${idx++},$${idx++},$${idx++},$${idx++},$${idx++},$${idx++}::jsonb)`
         );
       }
     }
 
     const mealInsert = await client.query(
       `INSERT INTO meals (
-         menu_id, day, meal_time, name,
-         calories, protein, fat, carbs, portion_weight
+         menu_id, day, meal_time, recipe_id, name,
+         calories, protein, fat, carbs, portion_weight, recipe
        ) VALUES ${placeholders.join(',')}
-       RETURNING id, day, meal_time, name, calories, protein, fat, carbs, portion_weight`,
+       RETURNING id, day, meal_time, recipe_id, name, calories, protein, fat, carbs, portion_weight, recipe`,
       values
     );
 
@@ -255,12 +260,14 @@ async function saveMenuToDatabase(userId, dailyCalories, parsedMenu) {
       id: r.id,
       day: r.day,
       meal_time: r.meal_time,
+      recipeId: r.recipe_id,
       name: r.name,
       calories: r.calories,
       protein: r.protein,
       fat: r.fat,
       carbs: r.carbs,
-      portion: r.portion_weight
+      portion: r.portion_weight,
+      recipe: r.recipe
     }));
 
     await client.query('COMMIT');
@@ -284,8 +291,39 @@ async function generateRecipe(meal, goal) {
     return cachedRecipe;
   }
 
-  console.log('Generating new recipe for:', meal.name);
-  const recipePrompt = `Составь короткий рецепт для «${meal.name}» (~${meal.portion} г) с макросами близко к: Ккал ${meal.calories}, Б ${meal.protein}, Ж ${meal.fat}, У ${meal.carbs}. Цель: ${goal}.
+  console.log('Generating adapted recipe for:', meal.name);
+
+  if (meal.recipeId) {
+    try {
+      const adapted = await adaptRecipe({
+        recipeId: meal.recipeId,
+        target: {
+          calories: meal.calories,
+          protein: meal.protein,
+          fat: meal.fat,
+          carbs: meal.carbs,
+          portionWeight: meal.portion
+        },
+        goal,
+        userPreferences: meal.userPreferences || {},
+        request: meal.adaptationRequest || ''
+      });
+      recipeCache.set(cacheKey, adapted);
+      return adapted;
+    } catch (error) {
+      console.error('Recipe adaptation failed, using legacy generation:', error.message);
+    }
+  }
+
+  console.log('Generating legacy recipe for:', meal.name);
+  const knowledgeSnippets = await searchKnowledge(`${meal.name} ${goal}`, {
+    sourceType: 'pdf_recipe_book',
+    limit: 3
+  });
+  const cookbookContext = knowledgeSnippets.length
+    ? `Используй как ориентир релевантные фрагменты из кулинарных книг ниже. Не копируй дословно, а адаптируй рецепт под целевые макросы.\n\n${formatKnowledgeSnippets(knowledgeSnippets)}\n\n`
+    : '';
+  const recipePrompt = `${cookbookContext}Составь короткий рецепт для «${meal.name}» (~${meal.portion} г) с макросами близко к: Ккал ${meal.calories}, Б ${meal.protein}, Ж ${meal.fat}, У ${meal.carbs}. Цель: ${goal}.
 Верни ТОЛЬКО JSON без пояснений:
 {"ingredients":["..."],"steps":["..."],"cookingTimeMinutes":0}`;
 
@@ -333,45 +371,59 @@ async function createWeeklyMenu(userId, dailyCalories, p, f, c, goal) {
     return cachedMenu;
   }
 
-  // Генерируем по одному дню, чтобы повысить стабильность JSON и сократить латентность
-  const system = { role: 'system', content: 'Ты отвечаешь только валидным JSON без текста до и после.' };
-  const days = [];
-  const nameCounts = new Map();
-  const proteinSources = new Map();
-  const carbSources = new Map();
-  const fiberSources = new Map();
-  for (let day = 1; day <= 7; day++) {
-    // Блокируем названия, которые уже использованы 2 раза и более
-    const blocked = Array.from(nameCounts.entries()).filter(([_, cnt]) => cnt >= 2).map(([name]) => name);
-    const usedProt = Array.from(proteinSources.keys());
-    const usedCarb = Array.from(carbSources.keys());
-    const usedFiber = Array.from(fiberSources.keys());
-    const dayPrompt = generateDayMenuPrompt(
-      dailyCalories,
-      p,
-      f,
-      c,
-      goal,
-      day,
-      blocked,
-      usedProt,
-      usedCarb,
-      usedFiber,
-      { protein: 5, carbs: 3, fiber: 5 }
-    );
-    const rawDay = await askChatGPT([system, { role: 'user', content: dayPrompt }], { temperature: 0.2, json: true, max_tokens: 450 });
-    const parsedDay = parseMenuJson(rawDay);
-    validateDayMenuStructure(parsedDay);
-    days.push(parsedDay);
-    for (const m of parsedDay.meals) {
-      if (m && m.name) nameCounts.set(m.name, (nameCounts.get(m.name) || 0) + 1);
-      if (m && m.proteinSource) proteinSources.set(m.proteinSource, (proteinSources.get(m.proteinSource) || 0) + 1);
-      if (m && m.carbSource) carbSources.set(m.carbSource, (carbSources.get(m.carbSource) || 0) + 1);
-      if (m && m.fiberSource) fiberSources.set(m.fiberSource, (fiberSources.get(m.fiberSource) || 0) + 1);
+  let parsedMenu = await planWeeklyMenu({
+    userId,
+    dailyCalories,
+    protein: p,
+    fat: f,
+    carbs: c
+  });
+
+  if (!parsedMenu && MENU_LLM_FALLBACK_ENABLED) {
+    // Если база рецептов пока не наполнена, используем старую LLM-генерацию как fallback.
+    const system = { role: 'system', content: 'Ты отвечаешь только валидным JSON без текста до и после.' };
+    const days = [];
+    const nameCounts = new Map();
+    const proteinSources = new Map();
+    const carbSources = new Map();
+    const fiberSources = new Map();
+
+    for (let day = 1; day <= 7; day++) {
+      const blocked = Array.from(nameCounts.entries()).filter(([_, cnt]) => cnt >= 2).map(([name]) => name);
+      const usedProt = Array.from(proteinSources.keys());
+      const usedCarb = Array.from(carbSources.keys());
+      const usedFiber = Array.from(fiberSources.keys());
+      const dayPrompt = generateDayMenuPrompt(
+        dailyCalories,
+        p,
+        f,
+        c,
+        goal,
+        day,
+        blocked,
+        usedProt,
+        usedCarb,
+        usedFiber,
+        { protein: 5, carbs: 3, fiber: 5 }
+      );
+      const rawDay = await askChatGPT([system, { role: 'user', content: dayPrompt }], { temperature: 0.2, json: true, max_tokens: 450 });
+      const parsedDay = parseMenuJson(rawDay);
+      validateDayMenuStructure(parsedDay);
+      days.push(parsedDay);
+      for (const m of parsedDay.meals) {
+        if (m && m.name) nameCounts.set(m.name, (nameCounts.get(m.name) || 0) + 1);
+        if (m && m.proteinSource) proteinSources.set(m.proteinSource, (proteinSources.get(m.proteinSource) || 0) + 1);
+        if (m && m.carbSource) carbSources.set(m.carbSource, (carbSources.get(m.carbSource) || 0) + 1);
+        if (m && m.fiberSource) fiberSources.set(m.fiberSource, (fiberSources.get(m.fiberSource) || 0) + 1);
+      }
     }
+
+    parsedMenu = { days };
   }
 
-  const parsedMenu = { days };
+  if (!parsedMenu) {
+    throw new Error('Не удалось собрать меню из базы рецептов, а LLM fallback отключен текущим режимом планировщика.');
+  }
   validateMenuStructure(parsedMenu);
 
   const { menuId, savedMeals } = await saveMenuToDatabase(userId, dailyCalories, parsedMenu);
@@ -380,18 +432,19 @@ async function createWeeklyMenu(userId, dailyCalories, p, f, c, goal) {
   // Генерацию рецептов запускаем в фоне, чтобы быстрее отправить меню
   (async () => {
     try {
-      await withConcurrencyLimit(savedMeals, 3, async (meal) => {
+      const mealsWithoutRecipes = savedMeals.filter((meal) => !meal.recipe);
+      await withConcurrencyLimit(mealsWithoutRecipes, 3, async (meal) => {
         const recipe = await generateRecipe(meal, goal);
         meal.recipe = recipe;
         try {
           await db.query(
-            'UPDATE meals SET recipe = $1::jsonb WHERE id = $2',
-            [JSON.stringify(recipe), meal.id]
+            'UPDATE meals SET name = COALESCE($1, name), recipe = $2::jsonb WHERE id = $3',
+            [recipe.title || null, JSON.stringify(recipe), meal.id]
           );
         } catch (e) {
           await db.query(
-            'UPDATE meals SET recipe = $1 WHERE id = $2',
-            [JSON.stringify(recipe), meal.id]
+            'UPDATE meals SET name = COALESCE($1, name), recipe = $2 WHERE id = $3',
+            [recipe.title || null, JSON.stringify(recipe), meal.id]
           );
         }
       });
@@ -412,5 +465,6 @@ async function getShoppingListFromMenu(meals) {
 
 module.exports = {
   createWeeklyMenu,
-  getShoppingListFromMenu
+  getShoppingListFromMenu,
+  generateRecipe
 };

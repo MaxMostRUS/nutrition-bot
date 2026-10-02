@@ -5,6 +5,12 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
+    "migrate": "node src/scripts/runMigrations.js",
+    "seed:recipes": "node src/scripts/seedRecipes.js",
+    "ingest:books": "node src/scripts/ingestPdfKnowledge.js",
+    "import:pdf:recipes": "node src/scripts/importPdfRecipes.js",
+    "import:web:recipes": "node src/scripts/importWebRecipes.js",
+    "dedupe:recipes": "node src/scripts/dedupeRecipes.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],

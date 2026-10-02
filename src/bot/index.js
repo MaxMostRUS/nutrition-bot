@@ -7,6 +7,7 @@ const validateUser = require('./middlewares/validateUser');
 const { registerMenuCommands } = require('./handlers/menu.handlers');
 const { registerUserCommands } = require('./handlers/user.handlers');
 const { registerUpdateHandlers } = require('./handlers/update.handlers');
+const { registerPaymentHandlers } = require('./handlers/payment.handlers');
 
 function createBot() {
   if (!BOT_TOKEN) {
@@ -51,11 +52,11 @@ function createBot() {
   registerMenuCommands(bot);
   registerUserCommands(bot);
   registerUpdateHandlers(bot);
+  registerPaymentHandlers(bot);
 
   // Update flows and callbacks kept in original scene/handlers
   return bot;
 }
 
 module.exports = createBot;
-
 

@@ -1,13 +1,86 @@
 const { Markup } = require('telegraf');
 const userController = require('../../controllers/userController');
 const { createWeeklyMenu, getShoppingListFromMenu } = require('../../controllers/menuController');
-const { getRecipeByMealId } = require('../../controllers/recipeController');
+const { ensureRecipesForMenuId, getRecipeByMealId } = require('../../controllers/recipeController');
 const { getMainMenuKeyboard } = require('../../keyboards');
 const escapeHtml = require('../../utils/escapeHtml');
 const db = require('../../services/db');
 const { sendWeeklyMenu } = require('../utils/menuFlow');
+const { searchRecipes } = require('../../services/recipeCatalogService');
+const { adaptRecipe } = require('../../services/recipeAdaptationService');
+const { getUserPreferences } = require('../../services/userPreferenceService');
+
+function formatAdaptedRecipe(recipe) {
+  const notes = Array.isArray(recipe.adaptationNotes) ? recipe.adaptationNotes : [];
+  const ingredients = Array.isArray(recipe.ingredients) ? recipe.ingredients : [];
+  const steps = Array.isArray(recipe.steps) ? recipe.steps : [];
+  const nutrition = recipe.nutrition || {};
+  let text = `🔄 <b>${escapeHtml(recipe.title || recipe.baseRecipeTitle || 'Адаптированный рецепт')}</b>\n\n`;
+  text += `📚 Основа: <i>${escapeHtml(recipe.baseRecipeTitle || '')}</i>\n`;
+  text += `📖 Источник: <i>${escapeHtml(recipe.sourceTitle || 'каталог рецептов')}</i>\n\n`;
+
+  if (notes.length) {
+    text += '<b>Изменения:</b>\n';
+    notes.slice(0, 5).forEach((note) => { text += `• ${escapeHtml(note)}\n`; });
+    text += '\n';
+  }
+
+  text += '<b>Ингредиенты:</b>\n';
+  ingredients.slice(0, 30).forEach((item) => { text += `• ${escapeHtml(item)}\n`; });
+  text += '\n<b>Приготовление:</b>\n';
+  steps.slice(0, 15).forEach((step, index) => { text += `${index + 1}. ${escapeHtml(step)}\n`; });
+  text += `\n⏱ Время: ${Number(recipe.cookingTimeMinutes || 0)} мин.`;
+  text += `\n🔥 Ккал: ${Number(nutrition.calories || 0)} | Б${Number(nutrition.protein || 0)} / Ж${Number(nutrition.fat || 0)} / У${Number(nutrition.carbs || 0)}`;
+  if (recipe.estimatedNutrition !== false) text += '\n⚠️ БЖУ оценочные';
+  return text.slice(0, 3900);
+}
 
 async function registerMenuCommands(bot) {
+  bot.command('adapt', async (ctx) => {
+    const input = String(ctx.message?.text || '').replace(/^\/adapt(?:@\w+)?\s*/i, '').trim();
+    const [recipeIdText, request = ''] = input.split('|').map((value) => value.trim());
+    const recipeId = Number(recipeIdText);
+    if (!Number.isInteger(recipeId) || recipeId < 1) {
+      return ctx.reply('Формат: <code>/adapt ID рецепта | пожелание</code>\nНапример: <code>/adapt 174 | сделай более белковым и без сыра</code>', { parse_mode: 'HTML' });
+    }
+
+    const user = await userController.getUserByTelegramId(ctx.from.id);
+    if (!user) return ctx.reply('⚠️ Сначала выполните команду <code>/start</code>.', { parse_mode: 'HTML' });
+
+    await ctx.reply('🔄 Адаптирую рецепт на основе исходного блюда и вашей базы...');
+    try {
+      const adapted = await adaptRecipe({
+        recipeId,
+        target: {
+          calories: user.daily_calories,
+          protein: user.protein,
+          fat: user.fat,
+          carbs: user.carbs,
+          portionWeight: null
+        },
+        goal: user.goal,
+        userPreferences: await getUserPreferences(user.id),
+        request
+      });
+      await ctx.reply(formatAdaptedRecipe(adapted), { parse_mode: 'HTML' });
+    } catch (error) {
+      console.error('Recipe adaptation command failed:', error);
+      await ctx.reply('Не удалось адаптировать рецепт. Проверьте ID и попробуйте ещё раз.');
+    }
+  });
+
+  bot.command('recipes', async (ctx) => {
+    const query = String(ctx.message?.text || '').replace(/^\/recipes(?:@\w+)?\s*/i, '').trim();
+    if (!query) {
+      return ctx.reply('Формат: <code>/recipes курица</code> или <code>/recipes шакшука</code>', { parse_mode: 'HTML' });
+    }
+
+    const recipes = await searchRecipes({ status: 'active', searchText: query, limit: 8 });
+    if (!recipes.length) return ctx.reply('В каталоге ничего не найдено.');
+    const lines = recipes.map((recipe) => `• <code>${recipe.id}</code> — ${escapeHtml(recipe.title)}\n  ${escapeHtml(recipe.sourceTitle || recipe.sourceType || '')}`);
+    await ctx.reply(`📚 <b>Найденные рецепты</b>\n\n${lines.join('\n')}\n\nДля адаптации: <code>/adapt ID | пожелание</code>`, { parse_mode: 'HTML' });
+  });
+
   // /menu command
   bot.command('menu', async (ctx) => {
     const telegramId = ctx.from.id;
@@ -122,16 +195,7 @@ async function registerMenuCommands(bot) {
     const menuId = ctx.match[1];
     await ctx.answerCbQuery();
     await ctx.reply('🛒 Формирую список покупок...\n\n⏳ Пожалуйста, подождите.');
-    let mealsFromDb = [];
-    const deadline = Date.now() + 120000;
-    while (Date.now() < deadline) {
-      const res = await db.query('SELECT name, recipe FROM meals WHERE menu_id=$1', [menuId]);
-      mealsFromDb = res.rows;
-      const total = mealsFromDb.length;
-      const ready = mealsFromDb.filter(m => !!m.recipe).length;
-      if (total > 0 && ready === total) break;
-      await new Promise(r => setTimeout(r, 5000));
-    }
+    const mealsFromDb = await ensureRecipesForMenuId(menuId);
     if (mealsFromDb.length === 0) return ctx.reply('Список покупок пуст. Нет доступных блюд.');
     const shoppingList = await getShoppingListFromMenu(mealsFromDb);
     const text = String(shoppingList || '').trim();
@@ -176,5 +240,3 @@ async function registerMenuCommands(bot) {
 }
 
 module.exports = { registerMenuCommands };
-
-

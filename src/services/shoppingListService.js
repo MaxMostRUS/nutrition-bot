@@ -1,23 +1,74 @@
 const escapeHtml = require('../utils/escapeHtml');
 
+const UNIT_RULES = [
+    { pattern: /^(?:ст\.?\s*л\.?(?:ожк(?:а|и)?)?|столов(?:ая|ые)?\s+ложк(?:а|и)?)(?=\s|$)/i, unit: 'ст.л.' },
+    { pattern: /^(?:ч\.?\s*л\.?(?:ожк(?:а|и)?)?|чайн(?:ая|ые)?\s+ложк(?:а|и)?)(?=\s|$)/i, unit: 'ч.л.' },
+    { pattern: /^(?:зубчик(?:а|ов)?|зуб\.?)(?=\s|$)/i, unit: 'зубчик' },
+    { pattern: /^(?:грамм(?:а|ов)?|гр\.?|г)(?=\s|$)/i, unit: 'г' },
+    { pattern: /^(?:килограмм(?:а|ов)?|кг)(?=\s|$)/i, unit: 'кг' },
+    { pattern: /^(?:миллилитр(?:а|ов)?|мл)(?=\s|$)/i, unit: 'мл' },
+    { pattern: /^(?:литр(?:а|ов)?|л)(?=\s|$)/i, unit: 'л' },
+    { pattern: /^(?:штук(?:и)?|шт\.?)(?=\s|$)/i, unit: 'шт' }
+];
+
+const INGREDIENT_FORMS = {
+    'индейка': { measured: 'индейки' },
+    'куриная грудка': { measured: 'куриной грудки' },
+    'куриный бульон': { measured: 'куриного бульона' },
+    'рыба': { measured: 'рыбы' },
+    'филе индейки': { measured: 'филе индейки' },
+    'болгарский перец': { measured: 'болгарского перца' },
+    'брокколи': { measured: 'брокколи' },
+    'картофель': { measured: 'картофеля' },
+    'лук': { measured: 'лука', one: 'луковица', few: 'луковицы', many: 'луковиц' },
+    'морковь': { measured: 'моркови' },
+    'помидоры': { measured: 'помидоров' },
+    'помидоры черри': { measured: 'помидоров черри' },
+    'чеснок': { measured: 'чеснока' },
+    'шпинат': { measured: 'шпината' },
+    'лимон': { measured: 'лимона', one: 'лимон', few: 'лимона', many: 'лимонов' },
+    'ягоды': { measured: 'ягод' },
+    'киноа': { measured: 'киноа' },
+    'овсяные хлопья': { measured: 'овсяных хлопьев' },
+    'греческий йогурт': { measured: 'греческого йогурта' },
+    'молоко': { measured: 'молока' },
+    'сыр': { measured: 'сыра' },
+    'творог': { measured: 'творога' },
+    'яйца': { one: 'яйцо', few: 'яйца', many: 'яиц' },
+    'орехи': { measured: 'орехов' },
+    'ванильный сахар': { measured: 'ванильного сахара' },
+    'ванильный экстракт': { measured: 'ванильного экстракта' },
+    'корица': { measured: 'корицы' },
+    'мед': { measured: 'меда' },
+    'оливковое масло': { measured: 'оливкового масла' },
+    'сахар': { measured: 'сахара' },
+    'разрыхлитель': { measured: 'разрыхлителя' },
+    'семена чиа': { measured: 'семян чиа' }
+};
+
 // Утилиты нормализации текста
 function preprocessRaw(text) {
-    return String(text)
-        .replace(/\s+/g, ' ')
+    return String(text || '')
+        .toLowerCase()
+        .replace(/[–—]/g, '-')
+        .replace(/¼/g, '1/4')
+        .replace(/½/g, '1/2')
+        .replace(/¾/g, '3/4')
+        .replace(/(\d)\s*\/\s*(\d)/g, '$1/$2')
+        .replace(/(\d),(\d)/g, '$1.$2')
         .replace(/\(по желанию\)/gi, '')
         .replace(/по желанию/gi, '')
         .replace(/по вкусу/gi, '')
         .replace(/\s*\(.*?\)/g, '') // убираем скобочные уточнения
         .replace(/ст\.?\s*л\.?/gi, 'ст.л.')
         .replace(/ч\.?\s*л\.?/gi, 'ч.л.')
-        .replace(/ожка/gi, 'ложка')
-        .replace(/ожки/gi, 'ложки')
-        .replace(/ложка/gi, 'ст.л.')
-        .replace(/ложки/gi, 'ст.л.')
-        .replace(/столовая лложка/gi, 'ст.л.')
-        .replace(/столовая лложки/gi, 'ст.л.')
-        .replace(/чайная лложка/gi, 'ч.л.')
-        .replace(/чайная лложки/gi, 'ч.л.')
+        .replace(/ст\.л\.?ожк(?:а|и)?/gi, 'ст.л.')
+        .replace(/ч\.л\.?ожк(?:а|и)?/gi, 'ч.л.')
+        .replace(/ст\.л\.?\s*ложк(?:а|и)?/gi, 'ст.л.')
+        .replace(/ч\.л\.?\s*ложк(?:а|и)?/gi, 'ч.л.')
+        .replace(/столов(?:ая|ые)\s+ложк(?:а|и)/gi, 'ст.л.')
+        .replace(/чайн(?:ая|ые)\s+ложк(?:а|и)/gi, 'ч.л.')
+        .replace(/\s+/g, ' ')
         .trim();
 }
 
@@ -31,13 +82,45 @@ function parseFraction(str) {
     return num / den;
 }
 
+function parseAmount(value) {
+    const normalized = String(value || '').trim();
+
+    if (/^\d+\s+\d+\/\d+$/.test(normalized)) {
+        const [whole, fraction] = normalized.split(/\s+/);
+        const fractionValue = parseFraction(fraction);
+        return fractionValue === null ? Number(whole) : Number(whole) + fractionValue;
+    }
+
+    if (/^\d+\/\d+$/.test(normalized)) {
+        return parseFraction(normalized);
+    }
+
+    const parsed = Number(normalized.replace(',', '.'));
+    return Number.isFinite(parsed) ? parsed : null;
+}
+
+function pluralizeCount(amount, one, few, many) {
+    const abs = Math.abs(Number(amount) || 0);
+    const mod100 = abs % 100;
+    const mod10 = abs % 10;
+
+    if (mod100 >= 11 && mod100 <= 14) return many;
+    if (mod10 === 1) return one;
+    if (mod10 >= 2 && mod10 <= 4) return few;
+    return many;
+}
+
+function getIngredientForms(name) {
+    return INGREDIENT_FORMS[name] || null;
+}
+
 function normalizeName(name) {
-    let n = name.toLowerCase().trim();
-    
-    // Убираем лишние слова
-    n = n.replace(/\b(свежий|свежая|свежее|свежие|отварной|отварная|отварное|отварные|запеченный|запеченная|запеченное|запеченные|консервированный|консервированная|консервированное|консервированные)\b/g, '');
-    n = n.replace(/\b(для посыпки|для подачи|или кленового сиропа)\b/g, '');
-    
+    let n = preprocessRaw(name);
+
+    // Убираем лишние слова и служебные хвосты
+    n = n.replace(/\b(свеж[а-я]*|отварн[а-я]*|запеченн[а-я]*|консервированн[а-я]*|тушен[а-я]*)\b/g, ' ');
+    n = n.replace(/\b(для посыпки|для подачи)\b/g, ' ');
+
     // Синонимы и унификация
     n = n.replace(/куриное?\s+филе|курин[а-я]*\s+грудк[а-я]*/g, 'куриная грудка');
     n = n.replace(/филе\s+индейк[а-я]*/g, 'филе индейки');
@@ -47,7 +130,12 @@ function normalizeName(name) {
     n = n.replace(/рыб[а-я]*/g, 'рыба');
     n = n.replace(/филе\s+белой\s+рыб[а-я]*/g, 'рыба');
     n = n.replace(/филе\s+рыб[а-я]*/g, 'рыба');
-    
+    n = n.replace(/греческ[а-я]*\s+йогурт[а-я]*/g, 'греческий йогурт');
+    n = n.replace(/вод[а-я]*\s+или\s+молок[а-я]*/g, 'молоко');
+    n = n.replace(/мед[а-я]*\s+или\s+кленов(?:ого)?\s+сироп[а-я]*/g, 'мед');
+    n = n.replace(/свеж[а-я]*\s+шпинат[а-я]*/g, 'шпинат');
+    n = n.replace(/свеж[а-я]*\s+ягод[а-я]*/g, 'ягоды');
+
     n = n.replace(/овсян[а-я]*\s+хлопь[а-я]*/g, 'овсяные хлопья');
     n = n.replace(/кин[оа]а/gi, 'киноа');
     n = n.replace(/гречк[а-я]*/g, 'гречка');
@@ -57,63 +145,76 @@ function normalizeName(name) {
     n = n.replace(/шпинат[а-я]*/g, 'шпинат');
     n = n.replace(/брокколи[а-я]*/g, 'брокколи');
     n = n.replace(/лук\s+красн[а-я]*/g, 'лук красный');
+    n = n.replace(/луковиц[а-я]*/g, 'лук');
     n = n.replace(/лук[а-я]*/g, 'лук');
     n = n.replace(/огурц[а-я]*/g, 'огурец');
     n = n.replace(/чеснок[а-я]*/g, 'чеснок');
     n = n.replace(/морков[а-я]*/g, 'морковь');
+    n = n.replace(/болгарск[а-я]*\s+пер(?:ец|ца|цу|цем|це)/g, 'болгарский перец');
+    n = n.replace(/сладк[а-я]*\s+пер(?:ец|ца|цу|цем|це)/g, 'болгарский перец');
     n = n.replace(/^овощи.*$/g, 'овощи смешанные');
     n = n.replace(/соль.*перец.*/g, 'соль и перец');
     n = n.replace(/лимонный сок|сок\s+лимон[а-я]*/g, 'лимон');
+    n = n.replace(/лимон\s+для\s+подачи/g, 'лимон');
+    n = n.replace(/смешанн[а-я]*\s+ягод[а-я]*/g, 'ягоды');
     n = n.replace(/ягод[а-я]*/g, 'ягоды');
-    n = n.replace(/свежих\s+ягод/g, 'ягоды');
-    n = n.replace(/яйц[ао]?/g, 'яйца');
+    n = n.replace(/ягодыы/g, 'ягоды');
+    n = n.replace(/яйц(?:о|а)?/g, 'яйца');
+    n = n.replace(/сыр[а-я]*/g, 'сыр');
     n = n.replace(/творог[а-я]*/g, 'творог');
     n = n.replace(/йогурт[а-я]*/g, 'йогурт');
     n = n.replace(/оливков[а-я]*\s+масл[а-я]*/g, 'оливковое масло');
-    n = n.replace(/мед|мёд/gi, 'мед');
+    n = n.replace(/м[её]д[а-я]*/gi, 'мед');
     n = n.replace(/кленового сиропа/g, 'кленовый сироп');
     n = n.replace(/кориц[а-я]*/g, 'корица');
     n = n.replace(/орех[а-я]*/g, 'орехи');
     n = n.replace(/миндал[а-я]*/g, 'миндаль');
-    
-    return n.trim();
+    n = n.replace(/куриного?\s+бульон[а-я]*/g, 'куриный бульон');
+    n = n.replace(/семян\s+чиа|семена?\s+чиа/g, 'семена чиа');
+    n = n.replace(/щепотка\s+соли/g, 'соль');
+    n = n.replace(/щепотка\s+кориц[а-я]*/g, 'корица');
+    n = n.replace(/\s+/g, ' ').trim();
+
+    return n;
 }
 
 // Обработка ингредиентов: нормализация и агрегация
 function normalizeIngredient(ingredient) {
     const raw = preprocessRaw(ingredient);
-    
-    // Обработка дробей типа 1/2
-    const fractionOnly = parseFraction(raw);
-    if (fractionOnly !== null) {
-        return { amount: fractionOnly, unit: 'шт', name: 'единица' };
+
+    if (!raw) {
+        return { amount: 0, unit: '', name: '' };
     }
-    
-    // Извлекаем количество и единицы
-    const match = raw.match(/^(\d+(?:[\.,]\d+)?|\d+\/\d+)\s*(г|кг|мл|л|ст\.л\.|ч\.л\.|шт|зубч)?\s*(.+)$/i);
-    if (match) {
-        let [, amountStr, unitRaw, name] = match;
-        let amount = parseFloat(amountStr.replace(',', '.'));
-        if (isNaN(amount)) {
-            const frac = parseFraction(amountStr);
-            amount = frac !== null ? frac : 0;
-        }
-        let unit = (unitRaw || '').toLowerCase();
-        
-        // Нормализация единиц
-        if (unit === 'стл' || unit === 'ст л' || unit === 'ст. л.' || unit === 'ложка' || unit === 'ложки') unit = 'ст.л.';
-        if (unit === 'чл' || unit === 'ч л' || unit === 'ч. л.' || unit === 'чайная ложка' || unit === 'чайные ложки') unit = 'ч.л.';
-        if (unit === 'зубчик' || unit === 'зубчика' || unit === 'зубчиков') unit = 'зубч';
-        if (unit === 'грамм' || unit === 'гр' || unit === 'граммов') unit = 'г';
-        if (unit === 'штук' || unit === 'шт.') unit = 'шт';
-        
-        name = normalizeName(name);
-        return { amount, unit, name };
+
+    const amountMatch = raw.match(/^(\d+(?:\.\d+)?(?:\/\d+)?(?:\s+\d+\/\d+)?)\s+(.+)$/);
+    if (!amountMatch) {
+        return { amount: 0, unit: '', name: normalizeName(raw) };
     }
-    
-    // Обработка фраз без количества
-    let nameOnly = normalizeName(raw);
-    return { amount: 0, unit: '', name: nameOnly };
+
+    const amount = parseAmount(amountMatch[1]);
+    let rest = amountMatch[2].trim();
+    let unit = '';
+
+    for (const rule of UNIT_RULES) {
+        const match = rest.match(rule.pattern);
+        if (!match) continue;
+
+        unit = rule.unit;
+        rest = rest.slice(match[0].length).trim();
+        break;
+    }
+
+    const name = normalizeName(rest || raw);
+
+    if (name === 'соль' || name === 'перец' || name === 'соль и перец' || name === 'специи') {
+        return { amount: 0, unit: '', name };
+    }
+
+    return {
+        amount: amount === null ? 0 : amount,
+        unit,
+        name
+    };
 }
 
 function aggregateIngredients(ingredients) {
@@ -158,8 +259,10 @@ function categorizeIngredients(aggregated) {
     for (const item of aggregated) {
         const name = item.name.toLowerCase();
         let category = 'Прочее';
-        
-        if (/курин|индейк|говяд|свинин|баранин|рыб|лосос|треск|тунец|филе/i.test(name)) {
+
+        if (['соль', 'перец', 'соль и перец', 'специи', 'корица'].includes(name)) {
+            category = 'Масла и приправы';
+        } else if (/курин|индейк|говяд|свинин|баранин|рыб|лосос|треск|тунец|филе/i.test(name)) {
             category = 'Мясо и рыба';
         } else if (/брокколи|морков|картофел|перец|лук|чеснок|шпинат|помидор|огурец|салат|горошек|фасоль|цукини|капуст/i.test(name)) {
             category = 'Овощи';
@@ -173,7 +276,7 @@ function categorizeIngredients(aggregated) {
             category = 'Яйца';
         } else if (/орех|семеч|миндал/i.test(name)) {
             category = 'Орехи и семена';
-        } else if (/масло|соль|перец|специи|мед|сахар|лимонный сок|уксус|приправ|паприк|корица|ваниль|кленовый сироп/i.test(name)) {
+        } else if (/масло|мед|сахар|уксус|приправ|паприк|ваниль|кленовый сироп/i.test(name)) {
             category = 'Масла и приправы';
         }
         
@@ -207,18 +310,33 @@ function formatShoppingList(categories) {
         
         // Форматируем и выводим
         for (const it of finalAggregated.values()) {
-            let qty = '';
+            const roundedAmount = Number.isInteger(it.amount)
+                ? it.amount
+                : Math.round(it.amount * 10) / 10;
+            const forms = getIngredientForms(it.name);
+
+            let line = it.name;
+
             if (it.amount > 0) {
-                if (it.unit === 'ст.л.' || it.unit === 'ч.л.') {
-                    qty = `${Math.round(it.amount * 10) / 10} ${it.unit} `;
-                } else if (it.unit === 'зубч') {
-                    qty = `${Math.round(it.amount)} ${it.unit} `;
+                if (!it.unit) {
+                    if (forms?.one && forms?.few && forms?.many) {
+                        line = `${roundedAmount} ${pluralizeCount(roundedAmount, forms.one, forms.few, forms.many)}`;
+                    } else {
+                        line = `${roundedAmount} ${it.name}`;
+                    }
+                } else if (it.unit === 'шт') {
+                    if (forms?.one && forms?.few && forms?.many) {
+                        line = `${roundedAmount} ${pluralizeCount(roundedAmount, forms.one, forms.few, forms.many)}`;
+                    } else {
+                        line = `${roundedAmount} шт ${it.name}`;
+                    }
+                } else if (it.unit === 'зубчик' && it.name === 'чеснок') {
+                    line = `${roundedAmount} зубч. чеснока`;
                 } else {
-                    qty = `${Math.round(it.amount)} ${it.unit} `;
+                    line = `${roundedAmount} ${it.unit} ${forms?.measured || it.name}`;
                 }
             }
-            
-            const line = `${qty}${it.name}`;
+
             result += ` • ${escapeHtml(line)}\n`;
         }
         

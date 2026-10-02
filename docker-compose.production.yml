@@ -1,0 +1,40 @@
+name: nutrition-bot
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-nutrition}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-nutrition_bot}
+    volumes:
+      - nutrition_db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  bot:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      BOT_TOKEN: ${BOT_TOKEN:?Set BOT_TOKEN}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:?Set OPENAI_API_KEY}
+      DATABASE_URL: postgres://${POSTGRES_USER:-nutrition}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-nutrition_bot}
+      PORT: 3000
+      PLANNER_MODE: ${PLANNER_MODE:-imported_only}
+      MENU_LLM_FALLBACK_ENABLED: ${MENU_LLM_FALLBACK_ENABLED:-false}
+      PREMIUM_PLAN_STARS: ${PREMIUM_PLAN_STARS:-199}
+      WEBHOOK_URL: ${WEBHOOK_URL:-}
+      WEBHOOK_PATH: ${WEBHOOK_PATH:-}
+      TELEGRAM_WEBHOOK_SECRET: ${TELEGRAM_WEBHOOK_SECRET:-}
+    ports:
+      - "3000:3000"
+
+volumes:
+  nutrition_db:

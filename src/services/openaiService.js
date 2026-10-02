@@ -1,16 +1,24 @@
 const { OpenAI } = require('openai');
 const { OPENAI_API_KEY, GPT_MODEL } = require('../config');
 
-if (!OPENAI_API_KEY) {
-  throw new Error('OPENAI_API_KEY is not set. Please configure environment variables.');
-}
+let openaiClient = null;
 
-const openai = new OpenAI({
-  apiKey: OPENAI_API_KEY,
-  timeout: 120000,
-  // Manual retry logic below handles retryable statuses explicitly.
-  maxRetries: 0
-});
+function getOpenAIClient() {
+  if (!OPENAI_API_KEY) {
+    throw new Error('OPENAI_API_KEY is not set. Please configure environment variables.');
+  }
+
+  if (!openaiClient) {
+    openaiClient = new OpenAI({
+      apiKey: OPENAI_API_KEY,
+      timeout: 120000,
+      // Manual retry logic below handles retryable statuses explicitly.
+      maxRetries: 0
+    });
+  }
+
+  return openaiClient;
+}
 
 function toSafeRetryCount(value, fallback = 3) {
   const n = Number(value);
@@ -70,6 +78,7 @@ async function askChatGPT(messages, temperatureOrOptions = 0.7, retries = 3) {
   for (let attempt = 1; attempt <= retryCount; attempt++) {
     try {
       console.log(`OpenAI request attempt ${attempt}/${retryCount}`);
+      const openai = getOpenAIClient();
 
       const requestBody = {
         model: GPT_MODEL,

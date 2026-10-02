@@ -1,0 +1,34 @@
+services:
+  - type: web
+    name: nutrition-bot
+    runtime: docker
+    plan: starter
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /
+    envVars:
+      - key: BOT_TOKEN
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: DATABASE_URL
+        fromDatabase:
+          name: nutrition-db
+          property: connectionString
+      - key: PLANNER_MODE
+        value: imported_only
+      - key: MENU_LLM_FALLBACK_ENABLED
+        value: "false"
+      - key: PREMIUM_PLAN_STARS
+        value: "199"
+      - key: TRIBUTE_API_KEY
+        sync: false
+      - key: TRIBUTE_PRODUCT_URL
+        sync: false
+      - key: TRIBUTE_PRODUCT_ID
+        sync: false
+      - key: TRIBUTE_WEBHOOK_PATH
+        value: /webhook/tribute
+
+databases:
+  - name: nutrition-db
+    plan: basic-256mb
