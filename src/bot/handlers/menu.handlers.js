@@ -9,6 +9,7 @@ const { sendWeeklyMenu } = require('../utils/menuFlow');
 const { searchRecipes } = require('../../services/recipeCatalogService');
 const { adaptRecipe } = require('../../services/recipeAdaptationService');
 const { getUserPreferences } = require('../../services/userPreferenceService');
+const { calculateMacros } = require('../../services/macrosService');
 
 function formatAdaptedRecipe(recipe) {
   const notes = Array.isArray(recipe.adaptationNotes) ? recipe.adaptationNotes : [];
@@ -146,12 +147,73 @@ async function registerMenuCommands(bot) {
       [ { text: 'День 3', callback_data: 'day_3' }, { text: 'День 4', callback_data: 'day_4' } ],
       [ { text: 'День 5', callback_data: 'day_5' }, { text: 'День 6', callback_data: 'day_6' } ],
       [ { text: 'День 7', callback_data: 'day_7' } ],
+      [ { text: '⚙️ Изменить калории и пересобрать', callback_data: 'change_calories' } ],
       [ { text: '🛒 Список покупок', callback_data: `shopping_list_${menuId}` } ]
     ];
     await ctx.reply('📋 Ваше меню на неделю\n\nВыберите день, чтобы посмотреть блюда:', {
       parse_mode: 'HTML',
       reply_markup: { inline_keyboard: dayButtons }
     });
+  });
+
+  bot.action('change_calories', async (ctx) => {
+    await ctx.answerCbQuery();
+    if (!ctx.session) ctx.session = {};
+    ctx.session.waitingForCalories = true;
+    await ctx.reply('Введите новую суточную калорийность, например: 2200 ккал');
+  });
+
+  bot.on('text', async (ctx, next) => {
+    if (!ctx.session?.waitingForCalories) return next();
+    const calories = Number(String(ctx.message.text || '').replace(',', '.').match(/\d+(?:\.\d+)?/)?.[0]);
+    if (!Number.isFinite(calories) || calories < 1000 || calories > 6000) {
+      return ctx.reply('Введите калорийность числом от 1000 до 6000 ккал.');
+    }
+
+    const user = await userController.getUserByTelegramId(ctx.from.id);
+    if (!user) {
+      delete ctx.session.waitingForCalories;
+      return ctx.reply('⚠️ Пользователь не найден. Выполните /start.');
+    }
+
+    const macros = calculateMacros({ calories, weight: user.weight, goal: user.goal });
+    await userController.upsertUser({
+      telegram_id: user.telegram_id,
+      age: user.age,
+      gender: user.gender,
+      weight: user.weight,
+      height: user.height,
+      activity: user.activity_level,
+      goal: user.goal,
+      daily_calories: Math.round(calories),
+      protein: macros.protein,
+      fat: macros.fat,
+      carbs: macros.carbs
+    });
+    delete ctx.session.waitingForCalories;
+
+    await ctx.reply(
+      `✅ Новая цель сохранена: <b>${Math.round(calories)} ккал</b>\n` +
+      `Б ${macros.protein} г / Ж ${macros.fat} г / У ${macros.carbs} г\n\n` +
+      'Пересобрать меню с учётом новых целей?',
+      { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[
+        { text: '✅ Пересобрать меню', callback_data: 'regenerate_after_calories' },
+        { text: '❌ Позже', callback_data: 'no_new_menu' }
+      ]] } }
+    );
+  });
+
+  bot.action('regenerate_after_calories', async (ctx) => {
+    await ctx.answerCbQuery();
+    const user = await userController.getUserByTelegramId(ctx.from.id);
+    if (!user) return ctx.reply('⚠️ Пользователь не найден. Выполните /start.');
+    await ctx.reply('🍽️ Пересобираю меню по новым калориям...');
+    try {
+      await sendWeeklyMenu(ctx, user, { force: true });
+    } catch (error) {
+      console.error('Error regenerating menu after calorie update:', error);
+      await ctx.reply('Не удалось пересобрать меню. Новые калории сохранены, попробуйте ещё раз.');
+    }
   });
 
   // Day selection

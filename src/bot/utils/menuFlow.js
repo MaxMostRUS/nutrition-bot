@@ -26,10 +26,10 @@ async function canGenerateMenu(userId) {
   return { allowed: true };
 }
 
-async function sendWeeklyMenu(ctx, user) {
+async function sendWeeklyMenu(ctx, user, options = {}) {
   const check = await canGenerateMenu(user.id);
   
-  if (!check.allowed) {
+  if (!check.allowed && !options.force) {
     const nextDateStr = check.nextDate.toLocaleDateString('ru-RU', { 
       day: 'numeric', 
       month: 'long', 
@@ -60,6 +60,7 @@ async function sendWeeklyMenu(ctx, user) {
     [ { text: 'День 3', callback_data: 'day_3' }, { text: 'День 4', callback_data: 'day_4' } ],
     [ { text: 'День 5', callback_data: 'day_5' }, { text: 'День 6', callback_data: 'day_6' } ],
     [ { text: 'День 7', callback_data: 'day_7' } ],
+    [ { text: '⚙️ Изменить калории и пересобрать', callback_data: 'change_calories' } ],
     [ { text: '🛒 Список покупок', callback_data: `shopping_list_${menuId}` } ]
   ];
 
@@ -71,5 +72,4 @@ async function sendWeeklyMenu(ctx, user) {
 }
 
 module.exports = { sendWeeklyMenu, canGenerateMenu };
-
 
