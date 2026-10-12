@@ -196,7 +196,14 @@ const registerScene = new Scenes.WizardScene(
     const bmr = calculateBMR({ weight, height, age, gender });
     const tdee = bmr * activityFactor(activity);
     const dailyCalories = adjustCaloriesForGoal(tdee, goal);
-    const macros = calculateMacros(dailyCalories);
+    const macros = ctx.session?.coachMacros || calculateMacros({
+      calories: dailyCalories,
+      weight,
+      goal
+    });
+    const targetCalories = ctx.session?.coachMacros
+      ? Math.round(macros.protein * 4 + macros.fat * 9 + macros.carbs * 4)
+      : dailyCalories;
 
     // Проверяем старые данные пользователя
     const telegramId = ctx.from.id;
@@ -239,7 +246,7 @@ const registerScene = new Scenes.WizardScene(
       height,
       activity,
       goal,
-      daily_calories: dailyCalories,
+      daily_calories: targetCalories,
       protein: macros.protein,
       fat: macros.fat,
       carbs: macros.carbs
@@ -257,7 +264,7 @@ const registerScene = new Scenes.WizardScene(
       await ctx.reply(
         `✅ Данные успешно сохранены!\n\n` +
         `📊 Ваша суточная норма:\n` +
-        `• Калории: <b>${dailyCalories} ккал</b>\n` +
+        `• Калории: <b>${targetCalories} ккал</b>\n` +
         `• Белки: <b>${macros.protein} г</b>\n` +
         `• Жиры: <b>${macros.fat} г</b>\n` +
         `• Углеводы: <b>${macros.carbs} г</b>\n\n` +
@@ -272,6 +279,8 @@ const registerScene = new Scenes.WizardScene(
         { parse_mode: 'HTML' }
       );
     }
+
+    if (ctx.session) delete ctx.session.coachMacros;
 
     // Если данные изменились, предлагаем сгенерировать новое меню
     if (dataChanged && oldUser) {

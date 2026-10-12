@@ -42,9 +42,49 @@ function createBot() {
     if (user) {
       ctx.reply('👋 С возвращением! Используйте кнопки ниже для навигации.', getMainMenuKeyboard());
     } else {
-      ctx.reply('👋 Привет! Я помогу рассчитать твою норму калорий и составить персональное меню на неделю.\n\n📝 Давайте начнем с регистрации!');
-      ctx.scene.enter('registerScene');
+      if (!ctx.session) ctx.session = {};
+      ctx.session.awaitingCoachMacros = true;
+      await ctx.reply(
+        '👋 Привет! Я помогу составить персональное меню на неделю.\n\n' +
+        'У вас уже рассчитаны тренером суточные Б/Ж/У?\n' +
+        'Если да, я использую их без пересчёта. Если нет, рассчитаю норму по вашим данным.',
+        { reply_markup: { keyboard: [['Да, внесу Б/Ж/У', 'Нет, рассчитать']], resize_keyboard: true, one_time_keyboard: true } }
+      );
     }
+  });
+
+  // Collect coach-provided macros before entering the regular profile wizard.
+  bot.on('text', async (ctx, next) => {
+    if (!ctx.session?.awaitingCoachMacros) return next();
+    const text = String(ctx.message.text || '').trim();
+    if (/^нет/i.test(text) || /рассчитать/i.test(text)) {
+      delete ctx.session.awaitingCoachMacros;
+      await ctx.reply('📝 Тогда рассчитаем норму. Давайте начнём регистрацию.');
+      return ctx.scene.enter('registerScene');
+    }
+    if (ctx.session.awaitingCoachMacros === true && (/^да/i.test(text) || /внесу/i.test(text))) {
+      ctx.session.awaitingCoachMacros = 'values';
+      return ctx.reply('Введите Б/Ж/У одной строкой, например: 180 - 70 - 220');
+    }
+    if (ctx.session.awaitingCoachMacros === 'values') {
+      const values = text
+        .replace(/,/g, '.')
+        .split(/\s*[-–—/]\s*|\s+/)
+        .map(Number)
+        .filter(Number.isFinite);
+      if (values.length !== 3 || values.some((value) => value <= 0)) {
+        return ctx.reply('Не удалось распознать Б/Ж/У. Пример формата: 180 - 70 - 220');
+      }
+      ctx.session.coachMacros = {
+        protein: Math.round(values[0]),
+        fat: Math.round(values[1]),
+        carbs: Math.round(values[2])
+      };
+      delete ctx.session.awaitingCoachMacros;
+      await ctx.reply('✅ Б/Ж/У сохранены. Теперь заполним профиль, чтобы подобрать рецепты и порции.');
+      return ctx.scene.enter('registerScene');
+    }
+    return ctx.reply('Выберите «Да, внесу Б/Ж/У» или «Нет, рассчитать».');
   });
 
   // Feature handlers
@@ -59,4 +99,3 @@ function createBot() {
 }
 
 module.exports = createBot;
-

@@ -6,7 +6,7 @@ function calculateBMR({ weight, height, age, gender }) {
       return 10 * weight + 6.25 * height - 5 * age - 161;
     }
   }
-  
+
   function activityFactor(level) {
     switch (level.toLowerCase()) {
       case 'низкий': return 1.2;
@@ -27,24 +27,36 @@ function calculateBMR({ weight, height, age, gender }) {
         return Math.round(calories);
     }
   }
-  
-  function calculateMacros(calories) {
-    // 30% protein, 30% fat, 40% carbs
-    const p = calories * 0.30; 
-    const f = calories * 0.30; 
-    const c = calories * 0.40;
-  
-    return {
-      protein: Math.round(p / 4),
-      fat: Math.round(f / 9),
-      carbs: Math.round(c / 4)
-    };
+
+  function calculateMacros(caloriesOrOptions, legacyOptions = {}) {
+    const options = typeof caloriesOrOptions === 'object'
+      ? caloriesOrOptions
+      : { calories: caloriesOrOptions, ...legacyOptions };
+    const calories = Number(options.calories);
+    const weight = Number(options.weight);
+    const goal = options.goal || 'maintain';
+
+    if (!Number.isFinite(calories) || calories <= 0) {
+      throw new Error('Invalid calories for macro calculation');
+    }
+
+    // Protein and fat are tied to body weight; carbs receive the remaining calories.
+    const proteinPerKg = goal === 'lose' ? 1.8 : 1.7;
+    const fatPerKg = goal === 'lose' ? 0.7 : goal === 'gain' ? 0.9 : 0.8;
+    const protein = Number.isFinite(weight) && weight > 0
+      ? Math.round(weight * proteinPerKg)
+      : Math.round((calories * 0.30) / 4);
+    const fat = Number.isFinite(weight) && weight > 0
+      ? Math.round(weight * fatPerKg)
+      : Math.round((calories * 0.25) / 9);
+    const carbs = Math.max(0, Math.round((calories - protein * 4 - fat * 9) / 4));
+
+    return { protein, fat, carbs };
   }
-  
+
   module.exports = {
     calculateBMR,
     activityFactor,
     adjustCaloriesForGoal,
     calculateMacros
   };
-  

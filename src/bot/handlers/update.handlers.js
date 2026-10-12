@@ -153,7 +153,11 @@ async function applyUpdateAndMaybeRecalculate(ctx, updateData) {
     const bmr = calculateBMR({ weight: merged.weight, height: merged.height, age: merged.age, gender: merged.gender });
     const tdee = bmr * activityFactor(merged.activity_level);
     const dailyCalories = adjustCaloriesForGoal(tdee, merged.goal);
-    const macros = calculateMacros(dailyCalories);
+    const macros = calculateMacros({
+      calories: dailyCalories,
+      weight: merged.weight,
+      goal: merged.goal
+    });
 
     await userController.upsertUser({
       telegram_id: telegramId,
@@ -206,5 +210,4 @@ async function applyUpdateAndMaybeRecalculate(ctx, updateData) {
 }
 
 module.exports = { registerUpdateHandlers };
-
 
