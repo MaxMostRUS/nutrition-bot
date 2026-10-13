@@ -194,24 +194,52 @@ function convertRecipeToMeal(dayNumber, mealTime, recipe, targets) {
   const nutrition = recipe.nutrition || {};
   const baseCalories = Number(nutrition.calories || 0);
   const rawScaleFactor = baseCalories > 0 ? Number(targets.calories || 0) / baseCalories : 1;
-  const scaleFactor = Math.max(0.75, Math.min(rawScaleFactor || 1, 4));
+  const scaleFactor = Math.max(0.25, Math.min(rawScaleFactor || 1, 4));
 
   function scale(value) {
     if (value === null || value === undefined) return 0;
     return Math.round(Number(value) * scaleFactor);
   }
 
+  const scaledNutrition = {
+    calories: scale(nutrition.calories),
+    protein: scale(nutrition.protein),
+    fat: scale(nutrition.fat),
+    carbs: scale(nutrition.carbs),
+    fiber: scale(nutrition.fiber),
+    portionWeight: scale(nutrition.portionWeight)
+  };
+  const scaledPayload = scaleRecipePayload(recipe, scaleFactor);
+
+  // Keep the displayed recipe on the same serving basis as the meal macros.
+  // LLM adaptation is intentionally not used here: it can change ingredients
+  // without changing the nutrition fields, producing the mismatch users saw.
+  const storedRecipe = {
+    title: recipe.title,
+    baseRecipeId: recipe.id,
+    baseRecipeTitle: recipe.title,
+    sourceTitle: recipe.sourceTitle,
+    sourceType: recipe.sourceType,
+    sourceUrl: recipe.sourceUrl,
+    ingredients: scaledPayload.ingredients,
+    steps: scaledPayload.steps,
+    cookingTimeMinutes: scaledPayload.cookingTimeMinutes,
+    nutrition: scaledNutrition,
+    estimatedNutrition: true,
+    servingScale: scaleFactor
+  };
+
   return {
     dayNumber,
     mealTime,
     recipeId: recipe.id,
     name: recipe.title,
-    calories: scale(nutrition.calories),
-    protein: scale(nutrition.protein),
-    fat: scale(nutrition.fat),
-    carbs: scale(nutrition.carbs),
-    portionWeight: scale(nutrition.portionWeight),
-    recipe: null
+    calories: scaledNutrition.calories,
+    protein: scaledNutrition.protein,
+    fat: scaledNutrition.fat,
+    carbs: scaledNutrition.carbs,
+    portionWeight: scaledNutrition.portionWeight,
+    recipe: storedRecipe
   };
 }
 
