@@ -6,7 +6,12 @@ module.exports = [
     language: 'en',
     mealType: 'breakfast',
     collectionUrl: 'https://medlineplus.gov/recipes/breakfast/',
-    tags: ['healthy', 'open-source', 'english']
+    tags: ['healthy', 'english'],
+    discovery: 'html-links',
+    license: 'unverified',
+    licenseUrl: 'https://medlineplus.gov/about/using/usingcontent/',
+    licensePolicy: 'structured-facts-link-only',
+    allowsAutomaticActivation: false
   },
   {
     id: 'medlineplus-en-lunch',
@@ -15,7 +20,12 @@ module.exports = [
     language: 'en',
     mealType: 'lunch',
     collectionUrl: 'https://medlineplus.gov/recipes/lunch/',
-    tags: ['healthy', 'open-source', 'english']
+    tags: ['healthy', 'english'],
+    discovery: 'html-links',
+    license: 'unverified',
+    licenseUrl: 'https://medlineplus.gov/about/using/usingcontent/',
+    licensePolicy: 'structured-facts-link-only',
+    allowsAutomaticActivation: false
   },
   {
     id: 'medlineplus-en-dinner',
@@ -24,7 +34,12 @@ module.exports = [
     language: 'en',
     mealType: 'dinner',
     collectionUrl: 'https://medlineplus.gov/recipes/dinner/',
-    tags: ['healthy', 'open-source', 'english']
+    tags: ['healthy', 'english'],
+    discovery: 'html-links',
+    license: 'unverified',
+    licenseUrl: 'https://medlineplus.gov/about/using/usingcontent/',
+    licensePolicy: 'structured-facts-link-only',
+    allowsAutomaticActivation: false
   },
   {
     id: 'medlineplus-en-soups',
@@ -33,7 +48,12 @@ module.exports = [
     language: 'en',
     mealType: 'lunch',
     collectionUrl: 'https://medlineplus.gov/recipes/soups/',
-    tags: ['healthy', 'open-source', 'english', 'soups']
+    tags: ['healthy', 'english', 'soups'],
+    discovery: 'html-links',
+    license: 'unverified',
+    licenseUrl: 'https://medlineplus.gov/about/using/usingcontent/',
+    licensePolicy: 'structured-facts-link-only',
+    allowsAutomaticActivation: false
   },
   {
     id: 'medlineplus-en-salads',
@@ -42,7 +62,12 @@ module.exports = [
     language: 'en',
     mealType: 'lunch',
     collectionUrl: 'https://medlineplus.gov/recipes/salads/',
-    tags: ['healthy', 'open-source', 'english', 'salads']
+    tags: ['healthy', 'english', 'salads'],
+    discovery: 'html-links',
+    license: 'unverified',
+    licenseUrl: 'https://medlineplus.gov/about/using/usingcontent/',
+    licensePolicy: 'structured-facts-link-only',
+    allowsAutomaticActivation: false
   },
   {
     id: 'medlineplus-en-vegetarian',
@@ -51,7 +76,12 @@ module.exports = [
     language: 'en',
     mealType: 'dinner',
     collectionUrl: 'https://medlineplus.gov/recipes/vegetarian/',
-    tags: ['healthy', 'open-source', 'english', 'vegetarian']
+    tags: ['healthy', 'english', 'vegetarian'],
+    discovery: 'html-links',
+    license: 'unverified',
+    licenseUrl: 'https://medlineplus.gov/about/using/usingcontent/',
+    licensePolicy: 'structured-facts-link-only',
+    allowsAutomaticActivation: false
   },
   {
     id: 'medlineplus-es-breakfast',
@@ -60,7 +90,12 @@ module.exports = [
     language: 'es',
     mealType: 'breakfast',
     collectionUrl: 'https://medlineplus.gov/spanish/recetas/desayuno/',
-    tags: ['healthy', 'open-source', 'spanish']
+    tags: ['healthy', 'spanish'],
+    discovery: 'html-links',
+    license: 'unverified',
+    licenseUrl: 'https://medlineplus.gov/about/using/usingcontent/',
+    licensePolicy: 'structured-facts-link-only',
+    allowsAutomaticActivation: false
   },
   {
     id: 'medlineplus-es-lunch',
@@ -69,7 +104,12 @@ module.exports = [
     language: 'es',
     mealType: 'lunch',
     collectionUrl: 'https://medlineplus.gov/spanish/recetas/almuerzo/',
-    tags: ['healthy', 'open-source', 'spanish']
+    tags: ['healthy', 'spanish'],
+    discovery: 'html-links',
+    license: 'unverified',
+    licenseUrl: 'https://medlineplus.gov/about/using/usingcontent/',
+    licensePolicy: 'structured-facts-link-only',
+    allowsAutomaticActivation: false
   },
   {
     id: 'medlineplus-es-dinner',
@@ -78,7 +118,12 @@ module.exports = [
     language: 'es',
     mealType: 'dinner',
     collectionUrl: 'https://medlineplus.gov/spanish/recetas/cena/',
-    tags: ['healthy', 'open-source', 'spanish']
+    tags: ['healthy', 'spanish'],
+    discovery: 'html-links',
+    license: 'unverified',
+    licenseUrl: 'https://medlineplus.gov/about/using/usingcontent/',
+    licensePolicy: 'structured-facts-link-only',
+    allowsAutomaticActivation: false
   },
   {
     id: 'medlineplus-es-sopas',
@@ -87,7 +132,12 @@ module.exports = [
     language: 'es',
     mealType: 'lunch',
     collectionUrl: 'https://medlineplus.gov/spanish/recetas/sopas/',
-    tags: ['healthy', 'open-source', 'spanish', 'soups']
+    tags: ['healthy', 'spanish', 'soups'],
+    discovery: 'html-links',
+    license: 'unverified',
+    licenseUrl: 'https://medlineplus.gov/about/using/usingcontent/',
+    licensePolicy: 'structured-facts-link-only',
+    allowsAutomaticActivation: false
   },
   {
     id: 'medlineplus-es-ensaladas',
@@ -96,7 +146,12 @@ module.exports = [
     language: 'es',
     mealType: 'lunch',
     collectionUrl: 'https://medlineplus.gov/spanish/recetas/ensaladas/',
-    tags: ['healthy', 'open-source', 'spanish', 'salads']
+    tags: ['healthy', 'spanish', 'salads'],
+    discovery: 'html-links',
+    license: 'unverified',
+    licenseUrl: 'https://medlineplus.gov/about/using/usingcontent/',
+    licensePolicy: 'structured-facts-link-only',
+    allowsAutomaticActivation: false
   },
   {
     id: 'medlineplus-es-vegetariana',
@@ -105,6 +160,102 @@ module.exports = [
     language: 'es',
     mealType: 'dinner',
     collectionUrl: 'https://medlineplus.gov/spanish/recetas/vegetariana/',
-    tags: ['healthy', 'open-source', 'spanish', 'vegetarian']
+    tags: ['healthy', 'spanish', 'vegetarian'],
+    discovery: 'html-links',
+    license: 'unverified',
+    licenseUrl: 'https://medlineplus.gov/about/using/usingcontent/',
+    licensePolicy: 'structured-facts-link-only',
+    allowsAutomaticActivation: false
+  },
+  {
+    id: 'wikibooks-en-recipes',
+    sourceType: 'web_wikibooks',
+    sourceTitle: 'English Wikibooks Cookbook',
+    language: 'en',
+    mealType: 'lunch',
+    discovery: 'mediawiki-category',
+    apiUrl: 'https://en.wikibooks.org/w/api.php',
+    categoryTitle: 'Category:Recipes',
+    defaultLimit: 320,
+    collectionUrl: 'https://en.wikibooks.org/wiki/Category:Recipes',
+    tags: ['english', 'wikibooks', 'community-recipe'],
+    license: 'CC-BY-SA-4.0',
+    licenseUrl: 'https://foundation.wikimedia.org/wiki/Policy:Terms_of_Use',
+    licensePolicy: 'attribution-sharealike',
+    allowsAutomaticActivation: true
+  },
+  {
+    id: 'wikibooks-es-recipes',
+    sourceType: 'web_wikibooks',
+    sourceTitle: 'Wikilibros: Artes culinarias',
+    language: 'es',
+    mealType: 'lunch',
+    discovery: 'mediawiki-category',
+    apiUrl: 'https://es.wikibooks.org/w/api.php',
+    categoryTitle: 'Categoría:Recetas',
+    defaultLimit: 200,
+    collectionUrl: 'https://es.wikibooks.org/wiki/Categor%C3%ADa:Recetas',
+    tags: ['spanish', 'wikibooks', 'community-recipe'],
+    license: 'CC-BY-SA-4.0',
+    licenseUrl: 'https://foundation.wikimedia.org/wiki/Policy:Terms_of_Use',
+    licensePolicy: 'attribution-sharealike',
+    allowsAutomaticActivation: true
+  },
+  {
+    id: 'wikibooks-ru-recipes',
+    sourceType: 'web_wikibooks',
+    sourceTitle: 'Русский Викиучебник: Кулинарная книга',
+    language: 'ru',
+    mealType: 'lunch',
+    discovery: 'mediawiki-category',
+    apiUrl: 'https://ru.wikibooks.org/w/api.php',
+    categoryTitle: 'Категория:Рецепты по алфавиту',
+    namespace: 104,
+    defaultLimit: 75,
+    collectionUrl: 'https://ru.wikibooks.org/wiki/Категория:Рецепты_по_алфавиту',
+    tags: ['russian', 'wikibooks', 'community-recipe'],
+    license: 'CC-BY-SA-4.0',
+    licenseUrl: 'https://foundation.wikimedia.org/wiki/Policy:Terms_of_Use',
+    licensePolicy: 'attribution-sharealike',
+    allowsAutomaticActivation: true
+  },
+  {
+    id: 'nutrition-gov-en',
+    sourceType: 'web_nutrition_gov',
+    sourceTitle: 'Nutrition.gov Recipes',
+    language: 'en',
+    mealType: 'lunch',
+    discovery: 'html-links',
+    collectionUrl: 'https://www.nutrition.gov/recipes/search',
+    pagination: { parameter: 'page', pages: 6 },
+    urlPrefix: 'https://www.nutrition.gov/recipes/',
+    tags: ['english', 'nutrition-gov', 'federal-recipe'],
+    license: 'mixed',
+    licenseUrl: 'https://www.usa.gov/government-copyright',
+    licensePolicy: 'recipe-creator-must-be-us-federal-gov',
+    licenseResolver: 'us-federal-creator',
+    allowsImport: true,
+    allowsAutomaticActivation: true
+  },
+  {
+    id: 'makebetterfood-en',
+    sourceType: 'web_makebetterfood',
+    sourceTitle: 'MakeBetterFood.com',
+    language: 'en',
+    mealType: 'lunch',
+    discovery: 'sitemap',
+    sitemapUrl: 'https://www.makebetterfood.com/sitemap.xml',
+    collectionUrl: 'https://www.makebetterfood.com/recipes/',
+    urlPrefix: 'https://www.makebetterfood.com/recipes/',
+    defaultLimit: 100,
+    tags: ['english', 'food-blog', 'research-only'],
+    license: 'CC-BY-NC-SA-3.0',
+    licenseUrl: 'https://www.makebetterfood.com/about/license.html',
+    licensePolicy: 'noncommercial-research-only',
+    allowsImport: false,
+    allowsAutomaticActivation: false
   }
-];
+].map((source) => ({
+  ...source,
+  allowsImport: source.allowsImport ?? source.sourceType === 'web_wikibooks'
+}));

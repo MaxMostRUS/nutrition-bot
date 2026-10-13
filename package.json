@@ -11,6 +11,8 @@
     "import:pdf:recipes": "node src/scripts/importPdfRecipes.js",
     "import:web:recipes": "node src/scripts/importWebRecipes.js",
     "import:unitools:recipes": "node src/scripts/importUnitoolsRecipes.js",
+    "prepare:usda-foods": "node src/scripts/prepareUsdaFoodDatabase.js",
+    "research:books": "node src/scripts/auditPublicDomainCookbooks.js",
     "dedupe:recipes": "node src/scripts/dedupeRecipes.js",
     "test": "node --test test/*.test.js"
   },

@@ -1,0 +1,540 @@
+{
+  "startedAt": "2026-10-13T00:07:16.105Z",
+  "finishedAt": "2026-10-13T00:08:10.257Z",
+  "mode": "dry-run",
+  "activateEligible": false,
+  "sourceCount": 15,
+  "discoveredCandidates": 1183,
+  "uniqueCandidates": 967,
+  "duplicateCandidateUrls": 216,
+  "fetchedCandidates": 967,
+  "parsedRecipes": 967,
+  "rejectedByParserOrCriticalQa": 260,
+  "excludedByLicensePolicy": 372,
+  "importedOrUpdated": 0,
+  "importFailures": 0,
+  "databaseRowsTouched": null,
+  "databaseUniqueSourceUrls": null,
+  "databaseUniqueContentHashes": null,
+  "fetchFailures": 0,
+  "byLanguage": {
+    "en": 264,
+    "es": 17,
+    "ru": 54
+  },
+  "byMealType": {
+    "lunch": 325,
+    "breakfast": 10
+  },
+  "byStatus": {
+    "draft": 335
+  },
+  "nutritionCoverage": {
+    "caloriesPresent": 2,
+    "fullMacrosPresent": 0,
+    "cookingTimePresent": 143,
+    "cuisinePresent": 81
+  },
+  "bySource": {
+    "medlineplus-en-breakfast": {
+      "language": "en",
+      "discovered": 33,
+      "unique": 33,
+      "parsed": 33,
+      "importedOrUpdated": 0,
+      "failures": 0
+    },
+    "medlineplus-en-lunch": {
+      "language": "en",
+      "discovered": 52,
+      "unique": 52,
+      "parsed": 52,
+      "importedOrUpdated": 0,
+      "failures": 0
+    },
+    "medlineplus-en-dinner": {
+      "language": "en",
+      "discovered": 85,
+      "unique": 52,
+      "parsed": 52,
+      "importedOrUpdated": 0,
+      "failures": 0
+    },
+    "medlineplus-en-soups": {
+      "language": "en",
+      "discovered": 20,
+      "unique": 1,
+      "parsed": 1,
+      "importedOrUpdated": 0,
+      "failures": 0
+    },
+    "medlineplus-en-salads": {
+      "language": "en",
+      "discovered": 20,
+      "unique": 11,
+      "parsed": 11,
+      "importedOrUpdated": 0,
+      "failures": 0
+    },
+    "medlineplus-en-vegetarian": {
+      "language": "en",
+      "discovered": 84,
+      "unique": 37,
+      "parsed": 37,
+      "importedOrUpdated": 0,
+      "failures": 0
+    },
+    "medlineplus-es-breakfast": {
+      "language": "es",
+      "discovered": 33,
+      "unique": 33,
+      "parsed": 33,
+      "importedOrUpdated": 0,
+      "failures": 0
+    },
+    "medlineplus-es-lunch": {
+      "language": "es",
+      "discovered": 52,
+      "unique": 52,
+      "parsed": 52,
+      "importedOrUpdated": 0,
+      "failures": 0
+    },
+    "medlineplus-es-dinner": {
+      "language": "es",
+      "discovered": 85,
+      "unique": 52,
+      "parsed": 52,
+      "importedOrUpdated": 0,
+      "failures": 0
+    },
+    "medlineplus-es-sopas": {
+      "language": "es",
+      "discovered": 20,
+      "unique": 1,
+      "parsed": 1,
+      "importedOrUpdated": 0,
+      "failures": 0
+    },
+    "medlineplus-es-ensaladas": {
+      "language": "es",
+      "discovered": 20,
+      "unique": 11,
+      "parsed": 11,
+      "importedOrUpdated": 0,
+      "failures": 0
+    },
+    "medlineplus-es-vegetariana": {
+      "language": "es",
+      "discovered": 84,
+      "unique": 37,
+      "parsed": 37,
+      "importedOrUpdated": 0,
+      "failures": 0
+    },
+    "wikibooks-en-recipes": {
+      "language": "en",
+      "discovered": 320,
+      "unique": 320,
+      "parsed": 320,
+      "importedOrUpdated": 0,
+      "failures": 0
+    },
+    "wikibooks-es-recipes": {
+      "language": "es",
+      "discovered": 200,
+      "unique": 200,
+      "parsed": 200,
+      "importedOrUpdated": 0,
+      "failures": 0
+    },
+    "wikibooks-ru-recipes": {
+      "language": "ru",
+      "discovered": 75,
+      "unique": 75,
+      "parsed": 75,
+      "importedOrUpdated": 0,
+      "failures": 0
+    }
+  },
+  "quality": {
+    "eligibleForActivation": 0,
+    "criticalFailure": 260,
+    "warningCount": 2305
+  },
+  "samples": [
+    {
+      "title": "Applesauce French Toast",
+      "url": "https://medlineplus.gov/recipes/applesauce-french-toast/",
+      "language": "en",
+      "mealType": "breakfast",
+      "status": "draft",
+      "qualityScore": 100,
+      "critical": [],
+      "warnings": [
+        "license_requires_manual_review"
+      ]
+    },
+    {
+      "title": "Any Berry Sauce",
+      "url": "https://medlineplus.gov/recipes/any-berry-sauce/",
+      "language": "en",
+      "mealType": "breakfast",
+      "status": "draft",
+      "qualityScore": 100,
+      "critical": [],
+      "warnings": [
+        "license_requires_manual_review"
+      ]
+    },
+    {
+      "title": "Baked Apple and Cranberries",
+      "url": "https://medlineplus.gov/recipes/baked-apple-and-cranberries/",
+      "language": "en",
+      "mealType": "breakfast",
+      "status": "draft",
+      "qualityScore": 100,
+      "critical": [],
+      "warnings": [
+        "license_requires_manual_review"
+      ]
+    },
+    {
+      "title": "Baked Berry Oatmeal",
+      "url": "https://medlineplus.gov/recipes/baked-berry-oatmeal/",
+      "language": "en",
+      "mealType": "breakfast",
+      "status": "draft",
+      "qualityScore": 91.43,
+      "critical": [],
+      "warnings": [
+        "missing_cuisine",
+        "missing_nutrition:calories",
+        "license_requires_manual_review"
+      ]
+    },
+    {
+      "title": "Banana Oatmeal Bread",
+      "url": "https://medlineplus.gov/recipes/banana-oatmeal-bread/",
+      "language": "en",
+      "mealType": "breakfast",
+      "status": "draft",
+      "qualityScore": 91.43,
+      "critical": [],
+      "warnings": [
+        "missing_cuisine",
+        "missing_nutrition:calories",
+        "license_requires_manual_review"
+      ]
+    },
+    {
+      "title": "Berry Blast Off",
+      "url": "https://medlineplus.gov/recipes/berry-blast-off/",
+      "language": "en",
+      "mealType": "breakfast",
+      "status": "draft",
+      "qualityScore": 91.43,
+      "critical": [],
+      "warnings": [
+        "missing_cuisine",
+        "missing_nutrition:calories",
+        "license_requires_manual_review"
+      ]
+    },
+    {
+      "title": "Blueberry Tofu Smoothie",
+      "url": "https://medlineplus.gov/recipes/blueberry-tofu-smoothie/",
+      "language": "en",
+      "mealType": "breakfast",
+      "status": "draft",
+      "qualityScore": 100,
+      "critical": [],
+      "warnings": [
+        "license_requires_manual_review"
+      ]
+    },
+    {
+      "title": "Breakfast Banana Split",
+      "url": "https://medlineplus.gov/recipes/breakfast-banana-split/",
+      "language": "en",
+      "mealType": "breakfast",
+      "status": "draft",
+      "qualityScore": 100,
+      "critical": [],
+      "warnings": [
+        "license_requires_manual_review"
+      ]
+    },
+    {
+      "title": "Breakfast Burritos",
+      "url": "https://medlineplus.gov/recipes/breakfast-burritos/",
+      "language": "en",
+      "mealType": "breakfast",
+      "status": "draft",
+      "qualityScore": 91.43,
+      "critical": [],
+      "warnings": [
+        "missing_cuisine",
+        "missing_nutrition:calories",
+        "license_requires_manual_review"
+      ]
+    },
+    {
+      "title": "Corn Pancakes",
+      "url": "https://medlineplus.gov/recipes/corn-pancakes/",
+      "language": "en",
+      "mealType": "breakfast",
+      "status": "draft",
+      "qualityScore": 100,
+      "critical": [],
+      "warnings": [
+        "license_requires_manual_review"
+      ]
+    },
+    {
+      "title": "Cherry Puff Pancake",
+      "url": "https://medlineplus.gov/recipes/cherry-puff-pancake/",
+      "language": "en",
+      "mealType": "breakfast",
+      "status": "draft",
+      "qualityScore": 100,
+      "critical": [],
+      "warnings": [
+        "license_requires_manual_review"
+      ]
+    },
+    {
+      "title": "Favorite Pancakes without Eggs",
+      "url": "https://medlineplus.gov/recipes/favorite-pancakes-without-eggs/",
+      "language": "en",
+      "mealType": "breakfast",
+      "status": "draft",
+      "qualityScore": 91.43,
+      "critical": [],
+      "warnings": [
+        "missing_cuisine",
+        "missing_nutrition:calories",
+        "license_requires_manual_review"
+      ]
+    },
+    {
+      "title": "Fruity French Toast Casserole",
+      "url": "https://medlineplus.gov/recipes/fruity-french-toast-casserole/",
+      "language": "en",
+      "mealType": "breakfast",
+      "status": "draft",
+      "qualityScore": 100,
+      "critical": [],
+      "warnings": [
+        "license_requires_manual_review"
+      ]
+    },
+    {
+      "title": "Green Pineapple Power Smoothie",
+      "url": "https://medlineplus.gov/recipes/green-pineapple-power-smoothie/",
+      "language": "en",
+      "mealType": "breakfast",
+      "status": "draft",
+      "qualityScore": 100,
+      "critical": [],
+      "warnings": [
+        "license_requires_manual_review"
+      ]
+    },
+    {
+      "title": "Jack-O-Lanterns (Pumpkin Pancakes)",
+      "url": "https://medlineplus.gov/recipes/jack-o-lanterns-pumpkin-pancakes/",
+      "language": "en",
+      "mealType": "breakfast",
+      "status": "draft",
+      "qualityScore": 100,
+      "critical": [],
+      "warnings": [
+        "license_requires_manual_review"
+      ]
+    },
+    {
+      "title": "Oatmeal Pecan Waffles (or Pancakes)",
+      "url": "https://medlineplus.gov/recipes/oatmeal-pecan-waffles-or-pancakes/",
+      "language": "en",
+      "mealType": "breakfast",
+      "status": "draft",
+      "qualityScore": 100,
+      "critical": [],
+      "warnings": [
+        "license_requires_manual_review"
+      ]
+    },
+    {
+      "title": "Orange Delight",
+      "url": "https://medlineplus.gov/recipes/orange-delight/",
+      "language": "en",
+      "mealType": "breakfast",
+      "status": "draft",
+      "qualityScore": 100,
+      "critical": [],
+      "warnings": [
+        "license_requires_manual_review"
+      ]
+    },
+    {
+      "title": "Overnight Oats For One",
+      "url": "https://medlineplus.gov/recipes/overnight-oats-for-one/",
+      "language": "en",
+      "mealType": "breakfast",
+      "status": "draft",
+      "qualityScore": 100,
+      "critical": [],
+      "warnings": [
+        "license_requires_manual_review"
+      ]
+    },
+    {
+      "title": "Overnight Oatmeal",
+      "url": "https://medlineplus.gov/recipes/overnight-oatmeal/",
+      "language": "en",
+      "mealType": "breakfast",
+      "status": "draft",
+      "qualityScore": 100,
+      "critical": [],
+      "warnings": [
+        "license_requires_manual_review"
+      ]
+    },
+    {
+      "title": "Peach Sundae",
+      "url": "https://medlineplus.gov/recipes/peach-sundae/",
+      "language": "en",
+      "mealType": "breakfast",
+      "status": "draft",
+      "qualityScore": 100,
+      "critical": [],
+      "warnings": [
+        "license_requires_manual_review"
+      ]
+    },
+    {
+      "title": "Peanut Butter Cereal Bars",
+      "url": "https://medlineplus.gov/recipes/peanut-butter-cereal-bars/",
+      "language": "en",
+      "mealType": "breakfast",
+      "status": "draft",
+      "qualityScore": 100,
+      "critical": [],
+      "warnings": [
+        "license_requires_manual_review"
+      ]
+    },
+    {
+      "title": "Pumpkin Breakfast Cookies",
+      "url": "https://medlineplus.gov/recipes/pumpkin-breakfast-cookies/",
+      "language": "en",
+      "mealType": "breakfast",
+      "status": "draft",
+      "qualityScore": 100,
+      "critical": [],
+      "warnings": [
+        "license_requires_manual_review"
+      ]
+    },
+    {
+      "title": "Raspberry Oatmeal Bars",
+      "url": "https://medlineplus.gov/recipes/raspberry-oatmeal-bars/",
+      "language": "en",
+      "mealType": "breakfast",
+      "status": "draft",
+      "qualityScore": 100,
+      "critical": [],
+      "warnings": [
+        "license_requires_manual_review"
+      ]
+    },
+    {
+      "title": "Savory Oatmeal",
+      "url": "https://medlineplus.gov/recipes/savory-oatmeal/",
+      "language": "en",
+      "mealType": "breakfast",
+      "status": "draft",
+      "qualityScore": 100,
+      "critical": [],
+      "warnings": [
+        "license_requires_manual_review"
+      ]
+    },
+    {
+      "title": "Skillet Granola",
+      "url": "https://medlineplus.gov/recipes/skillet-granola/",
+      "language": "en",
+      "mealType": "breakfast",
+      "status": "draft",
+      "qualityScore": 100,
+      "critical": [],
+      "warnings": [
+        "license_requires_manual_review"
+      ]
+    },
+    {
+      "title": "Sweet Potato and Orange Muffins",
+      "url": "https://medlineplus.gov/recipes/sweet-potato-and-orange-muffins/",
+      "language": "en",
+      "mealType": "breakfast",
+      "status": "draft",
+      "qualityScore": 100,
+      "critical": [],
+      "warnings": [
+        "license_requires_manual_review"
+      ]
+    },
+    {
+      "title": "Tofu Banana Pudding",
+      "url": "https://medlineplus.gov/recipes/tofu-banana-pudding/",
+      "language": "en",
+      "mealType": "breakfast",
+      "status": "draft",
+      "qualityScore": 100,
+      "critical": [],
+      "warnings": [
+        "license_requires_manual_review"
+      ]
+    },
+    {
+      "title": "Tofu Scramble",
+      "url": "https://medlineplus.gov/recipes/tofu-scramble/",
+      "language": "en",
+      "mealType": "breakfast",
+      "status": "draft",
+      "qualityScore": 100,
+      "critical": [],
+      "warnings": [
+        "license_requires_manual_review"
+      ]
+    },
+    {
+      "title": "Veggie Omelet in a Mug",
+      "url": "https://medlineplus.gov/recipes/veggie-omelet-in-a-mug/",
+      "language": "en",
+      "mealType": "breakfast",
+      "status": "draft",
+      "qualityScore": 100,
+      "critical": [],
+      "warnings": [
+        "license_requires_manual_review"
+      ]
+    },
+    {
+      "title": "Veggie Quiche Muffins",
+      "url": "https://medlineplus.gov/recipes/veggie-quiche-muffins/",
+      "language": "en",
+      "mealType": "breakfast",
+      "status": "draft",
+      "qualityScore": 91.43,
+      "critical": [],
+      "warnings": [
+        "missing_cuisine",
+        "missing_nutrition:calories",
+        "license_requires_manual_review"
+      ]
+    }
+  ],
+  "failures": []
+}

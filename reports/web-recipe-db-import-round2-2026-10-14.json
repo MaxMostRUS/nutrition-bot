@@ -1,0 +1,439 @@
+{
+  "startedAt": "2026-10-13T22:00:28.121Z",
+  "finishedAt": "2026-10-13T22:01:31.583Z",
+  "mode": "database-import",
+  "activateEligible": false,
+  "sourceCount": 1,
+  "discoveredCandidates": 155,
+  "uniqueCandidates": 143,
+  "duplicateCandidateUrls": 12,
+  "fetchedCandidates": 143,
+  "parsedRecipes": 142,
+  "rejectedByParserOrCriticalQa": 3,
+  "excludedByLicensePolicy": 90,
+  "importedOrUpdated": 50,
+  "importFailures": 0,
+  "databaseRowsTouched": 50,
+  "databaseUniqueSourceUrls": 50,
+  "databaseUniqueContentHashes": 50,
+  "fetchFailures": 0,
+  "byLanguage": {
+    "en": 50
+  },
+  "byMealType": {
+    "lunch": 32,
+    "breakfast": 9,
+    "dinner": 9
+  },
+  "byStatus": {
+    "draft": 50
+  },
+  "nutritionCoverage": {
+    "caloriesPresent": 23,
+    "fullMacrosPresent": 23,
+    "cookingTimePresent": 36,
+    "cuisinePresent": 0,
+    "estimatedByUsda": 23,
+    "estimationSkipped": 27
+  },
+  "bySource": {
+    "nutrition-gov-en": {
+      "language": "en",
+      "discovered": 155,
+      "unique": 143,
+      "parsed": 142,
+      "importedOrUpdated": 50,
+      "failures": 0
+    }
+  },
+  "quality": {
+    "eligibleForActivation": 35,
+    "criticalFailure": 2,
+    "warningCount": 283
+  },
+  "samples": [
+    {
+      "title": "Red, White, and Green Grilled Cheese",
+      "url": "https://www.nutrition.gov/recipes/red-white-and-green-grilled-cheese",
+      "language": "en",
+      "mealType": "lunch",
+      "status": "draft",
+      "qualityScore": 95.71,
+      "critical": [],
+      "warnings": [
+        "missing_cuisine"
+      ]
+    },
+    {
+      "title": "Three Sisters Salad",
+      "url": "https://www.nutrition.gov/recipes/three-sisters-salad",
+      "language": "en",
+      "mealType": "dinner",
+      "status": "draft",
+      "qualityScore": 95.71,
+      "critical": [],
+      "warnings": [
+        "missing_cuisine"
+      ]
+    },
+    {
+      "title": "Maple Brined Pork Chops",
+      "url": "https://www.nutrition.gov/recipes/maple-brined-pork-chops",
+      "language": "en",
+      "mealType": "dinner",
+      "status": "draft",
+      "qualityScore": 78.57,
+      "critical": [],
+      "warnings": [
+        "missing_cuisine",
+        "missing_nutrition:calories,protein,fat,carbs"
+      ]
+    },
+    {
+      "title": "Chicken Salad and Peach Sandwich",
+      "url": "https://www.nutrition.gov/recipes/chicken-salad-and-peach-sandwich",
+      "language": "en",
+      "mealType": "lunch",
+      "status": "draft",
+      "qualityScore": 95.71,
+      "critical": [],
+      "warnings": [
+        "missing_cuisine"
+      ]
+    },
+    {
+      "title": "Sheet Pan Sausage and Veggie Bake",
+      "url": "https://www.nutrition.gov/recipes/sheet-pan-sausage-and-veggie-bake",
+      "language": "en",
+      "mealType": "dinner",
+      "status": "draft",
+      "qualityScore": 95.71,
+      "critical": [],
+      "warnings": [
+        "missing_cuisine"
+      ]
+    },
+    {
+      "title": "Quick Lasagna",
+      "url": "https://www.nutrition.gov/recipes/quick-lasagna",
+      "language": "en",
+      "mealType": "dinner",
+      "status": "draft",
+      "qualityScore": 78.57,
+      "critical": [],
+      "warnings": [
+        "missing_cuisine",
+        "missing_nutrition:calories,protein,fat,carbs"
+      ]
+    },
+    {
+      "title": "Watermelon Cooler",
+      "url": "https://www.nutrition.gov/recipes/watermelon-cooler",
+      "language": "en",
+      "mealType": "lunch",
+      "status": "draft",
+      "qualityScore": 95.71,
+      "critical": [],
+      "warnings": [
+        "missing_cuisine"
+      ]
+    },
+    {
+      "title": "Watermelon Sundaes",
+      "url": "https://www.nutrition.gov/recipes/watermelon-sundaes",
+      "language": "en",
+      "mealType": "lunch",
+      "status": "draft",
+      "qualityScore": 95.71,
+      "critical": [],
+      "warnings": [
+        "missing_cooking_time",
+        "missing_cuisine"
+      ]
+    },
+    {
+      "title": "5 A Day Salad",
+      "url": "https://www.nutrition.gov/recipes/5-day-salad",
+      "language": "en",
+      "mealType": "lunch",
+      "status": "draft",
+      "qualityScore": 95.71,
+      "critical": [],
+      "warnings": [
+        "missing_cuisine"
+      ]
+    },
+    {
+      "title": "Strawberry Mango Feta Toast",
+      "url": "https://www.nutrition.gov/recipes/strawberry-mango-feta-toast",
+      "language": "en",
+      "mealType": "breakfast",
+      "status": "draft",
+      "qualityScore": 78.57,
+      "critical": [],
+      "warnings": [
+        "missing_cuisine",
+        "missing_nutrition:calories,protein,fat,carbs"
+      ]
+    },
+    {
+      "title": "Homemade Hummus",
+      "url": "https://www.nutrition.gov/recipes/homemade-hummus",
+      "language": "en",
+      "mealType": "lunch",
+      "status": "draft",
+      "qualityScore": 95.71,
+      "critical": [],
+      "warnings": [
+        "missing_cuisine"
+      ]
+    },
+    {
+      "title": "Berry Bread Pudding",
+      "url": "https://www.nutrition.gov/recipes/berry-bread-pudding",
+      "language": "en",
+      "mealType": "breakfast",
+      "status": "draft",
+      "qualityScore": 95.71,
+      "critical": [],
+      "warnings": [
+        "missing_cooking_time",
+        "missing_cuisine"
+      ]
+    },
+    {
+      "title": "Couscous With Carrots, Walnuts, and Raisins ",
+      "url": "https://www.nutrition.gov/recipes/couscous-carrots-walnuts-and-raisins",
+      "language": "en",
+      "mealType": "dinner",
+      "status": "draft",
+      "qualityScore": 95.71,
+      "critical": [],
+      "warnings": [
+        "missing_cuisine"
+      ]
+    },
+    {
+      "title": "Savory Meatball Muffins",
+      "url": "https://www.nutrition.gov/recipes/savory-meatball-muffins",
+      "language": "en",
+      "mealType": "dinner",
+      "status": "draft",
+      "qualityScore": 95.71,
+      "critical": [],
+      "warnings": [
+        "missing_cuisine"
+      ]
+    },
+    {
+      "title": "Quick and Easy Pizza",
+      "url": "https://www.nutrition.gov/recipes/quick-and-easy-pizza",
+      "language": "en",
+      "mealType": "lunch",
+      "status": "draft",
+      "qualityScore": 78.57,
+      "critical": [],
+      "warnings": [
+        "missing_cuisine",
+        "missing_nutrition:calories,protein,fat,carbs"
+      ]
+    },
+    {
+      "title": "Cabbage Comfort",
+      "url": "https://www.nutrition.gov/recipes/cabbage-comfort",
+      "language": "en",
+      "mealType": "lunch",
+      "status": "draft",
+      "qualityScore": 78.57,
+      "critical": [],
+      "warnings": [
+        "missing_cuisine",
+        "missing_nutrition:calories,protein,fat,carbs"
+      ]
+    },
+    {
+      "title": "Mushroom Beef Sloppy Joes",
+      "url": "https://www.nutrition.gov/recipes/mushroom-beef-sloppy-joes",
+      "language": "en",
+      "mealType": "lunch",
+      "status": "draft",
+      "qualityScore": 78.57,
+      "critical": [],
+      "warnings": [
+        "missing_cuisine",
+        "missing_nutrition:calories,protein,fat,carbs"
+      ]
+    },
+    {
+      "title": "Argentinian Chimichurri Sauce",
+      "url": "https://www.nutrition.gov/recipes/argentinian-chimichurri-sauce",
+      "language": "en",
+      "mealType": "lunch",
+      "status": "draft",
+      "qualityScore": 78.57,
+      "critical": [],
+      "warnings": [
+        "missing_cooking_time",
+        "missing_cuisine",
+        "missing_nutrition:calories,protein,fat,carbs"
+      ]
+    },
+    {
+      "title": "Easy Bean Soup",
+      "url": "https://www.nutrition.gov/recipes/easy-bean-soup",
+      "language": "en",
+      "mealType": "lunch",
+      "status": "draft",
+      "qualityScore": 78.57,
+      "critical": [],
+      "warnings": [
+        "missing_cuisine",
+        "missing_nutrition:calories,protein,fat,carbs"
+      ]
+    },
+    {
+      "title": "Blueberry Oatmeal Pancakes",
+      "url": "https://www.nutrition.gov/recipes/blueberry-oatmeal-pancakes",
+      "language": "en",
+      "mealType": "breakfast",
+      "status": "draft",
+      "qualityScore": 78.57,
+      "critical": [],
+      "warnings": [
+        "missing_cuisine",
+        "missing_nutrition:calories,protein,fat,carbs"
+      ]
+    },
+    {
+      "title": "Homemade Bagels",
+      "url": "https://www.nutrition.gov/recipes/homemade-bagels",
+      "language": "en",
+      "mealType": "breakfast",
+      "status": "draft",
+      "qualityScore": 95.71,
+      "critical": [],
+      "warnings": [
+        "missing_cuisine"
+      ]
+    },
+    {
+      "title": "Velvety Avocado Pesto Dip",
+      "url": "https://www.nutrition.gov/recipes/velvety-avocado-pesto-dip",
+      "language": "en",
+      "mealType": "lunch",
+      "status": "draft",
+      "qualityScore": 78.57,
+      "critical": [],
+      "warnings": [
+        "missing_cooking_time",
+        "missing_cuisine",
+        "missing_nutrition:calories,protein,fat,carbs"
+      ]
+    },
+    {
+      "title": "Avocado and Corn Salsa",
+      "url": "https://www.nutrition.gov/recipes/avocado-and-corn-salsa",
+      "language": "en",
+      "mealType": "lunch",
+      "status": "draft",
+      "qualityScore": 78.57,
+      "critical": [],
+      "warnings": [
+        "missing_cooking_time",
+        "missing_cuisine",
+        "missing_nutrition:calories,protein,fat,carbs"
+      ]
+    },
+    {
+      "title": "Avocado Melon Breakfast Smoothie",
+      "url": "https://www.nutrition.gov/recipes/avocado-melon-breakfast-smoothie",
+      "language": "en",
+      "mealType": "breakfast",
+      "status": "draft",
+      "qualityScore": 78.57,
+      "critical": [],
+      "warnings": [
+        "missing_cuisine",
+        "missing_nutrition:calories,protein,fat,carbs"
+      ]
+    },
+    {
+      "title": "Banana Berry Muffins",
+      "url": "https://www.nutrition.gov/recipes/banana-berry-muffins",
+      "language": "en",
+      "mealType": "breakfast",
+      "status": "draft",
+      "qualityScore": 95.71,
+      "critical": [],
+      "warnings": [
+        "missing_cooking_time",
+        "missing_cuisine"
+      ]
+    },
+    {
+      "title": "Rise and Shine Cobbler",
+      "url": "https://www.nutrition.gov/recipes/rise-and-shine-cobbler",
+      "language": "en",
+      "mealType": "breakfast",
+      "status": "draft",
+      "qualityScore": 78.57,
+      "critical": [],
+      "warnings": [
+        "missing_cuisine",
+        "missing_nutrition:calories,protein,fat,carbs"
+      ]
+    },
+    {
+      "title": "Microwave Beef Enchiladas",
+      "url": "https://www.nutrition.gov/recipes/microwave-beef-enchiladas",
+      "language": "en",
+      "mealType": "lunch",
+      "status": "draft",
+      "qualityScore": 78.57,
+      "critical": [],
+      "warnings": [
+        "missing_cuisine",
+        "missing_nutrition:calories,protein,fat,carbs"
+      ]
+    },
+    {
+      "title": "Homemade Chicken and Dumplings",
+      "url": "https://www.nutrition.gov/recipes/homemade-chicken-and-dumplings",
+      "language": "en",
+      "mealType": "dinner",
+      "status": "draft",
+      "qualityScore": 95.71,
+      "critical": [],
+      "warnings": [
+        "missing_cuisine"
+      ]
+    },
+    {
+      "title": "Fruity French Toast Casserole",
+      "url": "https://www.nutrition.gov/recipes/fruity-french-toast-casserole",
+      "language": "en",
+      "mealType": "breakfast",
+      "status": "draft",
+      "qualityScore": 78.57,
+      "critical": [],
+      "warnings": [
+        "missing_cuisine",
+        "missing_nutrition:calories,protein,fat,carbs"
+      ]
+    },
+    {
+      "title": "'Leftovers' Broccoli Potato Soup",
+      "url": "https://www.nutrition.gov/recipes/leftovers-broccoli-potato-soup",
+      "language": "en",
+      "mealType": "lunch",
+      "status": "draft",
+      "qualityScore": 95.71,
+      "critical": [],
+      "warnings": [
+        "missing_cooking_time",
+        "missing_cuisine"
+      ]
+    }
+  ],
+  "failures": []
+}

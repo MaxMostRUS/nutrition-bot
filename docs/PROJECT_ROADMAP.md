@@ -222,6 +222,9 @@ HERMES не является обязательным для текущего э
 | 2026-10-13 | Google Compute Engine VM | Бот должен работать независимо от локального компьютера |
 | 2026-10-13 | HERMES пока не добавлять | Текущей агентной структуры достаточно, инфраструктура HERMES преждевременна |
 | 2026-10-13 | Лицензированный UniTools dataset | Быстро расширяет каталог реальными RU/EN рецептами; импортёр сохраняет CC BY-SA provenance и не выдумывает БЖУ |
+| 2026-10-13 | Web import: CC BY-SA first, drafts by default | 335 реальных EN/ES/RU рецептов из Wikibooks/Wikilibros прошли критический QA и импортированы в local dev; MedlinePlus оставлен research-only до проверки прав |
+| 2026-10-14 | Nutrition.gov + USDA nutrition enrichment | 50 federal recipes imported as local drafts; 23 received full estimated macros from measured ingredients and USDA SR Legacy, with match provenance; blog and non-federal recipes remained research-only |
+| 2026-10-14 | Public-domain cookbook audit before extraction | 4 Project Gutenberg books confirmed public domain in the USA, but kept as candidates until book-specific structure parsers are reviewed |
 
 ## 11. Правило обновления документа
 

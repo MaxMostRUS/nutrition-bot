@@ -26,6 +26,27 @@ function slugify(value) {
     .slice(0, 120);
 }
 
+function normalizeSourceUrl(value) {
+  const raw = normalizeText(value);
+  if (!raw) return null;
+  try {
+    const url = new URL(raw);
+    url.hash = '';
+    for (const key of [...url.searchParams.keys()]) {
+      if (/^(utm_|fbclid|gclid)/i.test(key)) url.searchParams.delete(key);
+    }
+    url.pathname = url.pathname.replace(/\/+$/, '') || '/';
+    return url.toString();
+  } catch {
+    return raw;
+  }
+}
+
+function normalizeStatus(value) {
+  const status = normalizeText(value || 'draft').toLowerCase();
+  return ['draft', 'review', 'active', 'rejected'].includes(status) ? status : 'draft';
+}
+
 function normalizeMealType(mealType, title = '', tags = []) {
   const raw = `${normalizeText(mealType)} ${normalizeText(title)} ${normalizeStringArray(tags).join(' ')}`.toLowerCase();
 
@@ -61,10 +82,12 @@ function normalizeIngredients(ingredients) {
   return (Array.isArray(ingredients) ? ingredients : [])
     .map((item) => {
       if (typeof item === 'string') {
+        const name = normalizeText(item);
+        if (!name) return null;
         return {
-          name: normalizeText(item),
-          canonicalName: normalizeText(item).toLowerCase(),
-          category: inferIngredientCategory(item),
+          name,
+          canonicalName: name.toLowerCase(),
+          category: inferIngredientCategory(name),
           amount: null,
           unit: null
         };
@@ -131,7 +154,7 @@ function normalizeImportedRecipe(recipe, defaults = {}) {
     ...normalizeStringArray(defaults.tags),
     ...normalizeStringArray(recipe.tags),
     ...(needsNutritionReview ? ['nutrition-review'] : [])
-  ]));
+  ].map((tag) => tag.slice(0, 100))));
 
   const mealType = normalizeMealType(recipe.mealType || defaults.mealType, title, tags);
   if (!title || !mealType) return null;
@@ -152,14 +175,23 @@ function normalizeImportedRecipe(recipe, defaults = {}) {
     sourceType: normalizeText(recipe.sourceType || defaults.sourceType || 'imported'),
     sourceTitle: normalizeText(recipe.sourceTitle || defaults.sourceTitle || '') || null,
     sourceUrl: normalizeText(recipe.sourceUrl || defaults.sourceUrl || '') || null,
+    normalizedSourceUrl: normalizeSourceUrl(recipe.normalizedSourceUrl || recipe.sourceUrl || defaults.sourceUrl),
+    language: normalizeText(recipe.language || defaults.language || '') || null,
     license: normalizeText(recipe.license || defaults.license || '') || null,
+    licenseUrl: normalizeText(recipe.licenseUrl || defaults.licenseUrl || '') || null,
+    sourceCheckedAt: normalizeText(recipe.sourceCheckedAt || defaults.sourceCheckedAt || '') || null,
+    sourceRevision: normalizeText(recipe.sourceRevision || defaults.sourceRevision || '') || null,
+    contentHash: normalizeText(recipe.contentHash || defaults.contentHash || '') || null,
+    qualityScore: toNullableNumber(recipe.qualityScore ?? defaults.qualityScore),
+    qualityReport: recipe.qualityReport || defaults.qualityReport || {},
+    provenance: recipe.provenance || defaults.provenance || {},
     embeddingKey: buildEmbeddingKey({
       ...defaults,
       ...recipe,
       title
     }),
-    status: normalizeText(
-      recipe.status || defaults.status || (needsNutritionReview ? 'review' : 'active')
+    status: normalizeStatus(
+      recipe.status || defaults.status || (needsNutritionReview ? 'review' : 'draft')
     ),
     tags,
     nutrition,
@@ -174,6 +206,14 @@ async function findExistingRecipeId(normalizedRecipe) {
   );
   if (byEmbedding.rows[0]?.id) return byEmbedding.rows[0].id;
 
+  if (normalizedRecipe.normalizedSourceUrl) {
+    const byNormalizedUrl = await db.query(
+      'SELECT id FROM recipes WHERE normalized_source_url = $1 LIMIT 1',
+      [normalizedRecipe.normalizedSourceUrl]
+    );
+    if (byNormalizedUrl.rows[0]?.id) return byNormalizedUrl.rows[0].id;
+  }
+
   const canMatchBySourceUrl = normalizedRecipe.sourceUrl
     && normalizedRecipe.sourceType
     && normalizedRecipe.sourceType !== 'pdf_book_recipe';
@@ -184,6 +224,17 @@ async function findExistingRecipeId(normalizedRecipe) {
       [normalizedRecipe.sourceUrl]
     );
     if (byUrl.rows[0]?.id) return byUrl.rows[0].id;
+  }
+
+  if (normalizedRecipe.contentHash) {
+    const byContent = await db.query(
+      `SELECT id FROM recipes
+       WHERE content_hash = $1
+         AND coalesce(language, '') = coalesce($2, '')
+       LIMIT 1`,
+      [normalizedRecipe.contentHash, normalizedRecipe.language]
+    );
+    if (byContent.rows[0]?.id) return byContent.rows[0].id;
   }
 
   const byTitle = await db.query(
@@ -226,6 +277,8 @@ module.exports = {
   importRecipeBatch,
   normalizeImportedRecipe,
   normalizeMealType,
+  normalizeSourceUrl,
+  normalizeStatus,
   slugify,
   upsertImportedRecipe
 };

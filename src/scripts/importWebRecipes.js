@@ -1,428 +1,276 @@
+const fs = require('fs');
+const path = require('path');
+
 const webRecipeSources = require('../data/webRecipeSources');
-const { importRecipeBatch } = require('../services/recipeImportService');
-const db = require('../services/db');
+const {
+  discoverSourceCandidates,
+  fetchAndMapCandidate,
+  finalizeRecipe,
+  mapWithConcurrency
+} = require('../services/webRecipePipeline');
+const { estimateRecipeNutrition, loadFoodIndex } = require('../services/recipeNutritionEstimator');
 
 function parseArgs(argv) {
   const args = {};
   for (const item of argv) {
     if (!item.startsWith('--')) continue;
-    const [key, value] = item.slice(2).split('=');
-    args[key] = value === undefined ? true : value;
+    const [key, ...valueParts] = item.slice(2).split('=');
+    args[key] = valueParts.length ? valueParts.join('=') : true;
   }
   return args;
 }
 
-function unique(values) {
-  return Array.from(new Set(values));
+function countBy(items, selector) {
+  return items.reduce((counts, item) => {
+    const key = selector(item) || 'unknown';
+    counts[key] = (counts[key] || 0) + 1;
+    return counts;
+  }, {});
 }
 
-function decodeHtmlEntities(value) {
-  return String(value || '')
-    .replace(/&nbsp;/gi, ' ')
-    .replace(/&amp;/gi, '&')
-    .replace(/&quot;/gi, '"')
-    .replace(/&#39;|&apos;/gi, "'")
-    .replace(/&lt;/gi, '<')
-    .replace(/&gt;/gi, '>')
-    .replace(/&#(\d+);/g, (_, code) => String.fromCharCode(Number(code)))
-    .replace(/&#x([0-9a-f]+);/gi, (_, code) => String.fromCharCode(parseInt(code, 16)));
+function normalizedCandidateKey(candidate) {
+  const url = new URL(candidate.url);
+  url.hash = '';
+  url.search = '';
+  url.pathname = url.pathname.replace(/\/+$/, '') || '/';
+  return url.toString().toLowerCase();
 }
 
-function stripHtml(html) {
-  return decodeHtmlEntities(
-    String(html || '')
-      .replace(/<script[\s\S]*?<\/script>/gi, ' ')
-      .replace(/<style[\s\S]*?<\/style>/gi, ' ')
-      .replace(/<(?:br|\/p|\/div|\/li|\/h[1-6]|\/section|\/article)>/gi, '\n')
-      .replace(/<[^>]+>/g, ' ')
-  )
-    .split('\n')
-    .map((line) => line.replace(/\s+/g, ' ').trim())
-    .filter(Boolean)
-    .join('\n');
-}
-
-function parseIsoDurationToMinutes(value) {
-  const text = String(value || '').trim();
-  const match = text.match(/^PT(?:(\d+)H)?(?:(\d+)M)?$/i);
-  if (!match) return null;
-  const hours = Number(match[1] || 0);
-  const minutes = Number(match[2] || 0);
-  return hours * 60 + minutes;
-}
-
-function parseServings(value) {
-  const text = String(value || '').trim();
-  const match = text.match(/(\d+(?:\.\d+)?)/);
-  return match ? Number(match[1]) : null;
-}
-
-function parseNutritionNumber(value) {
-  const text = String(value || '').replace(',', '.');
-  const match = text.match(/(\d+(?:\.\d+)?)/);
-  return match ? Number(match[1]) : null;
-}
-
-function parseDurationText(value) {
-  const text = String(value || '').toLowerCase().trim();
-  if (!text) return null;
-
-  const numbers = [...text.matchAll(/(\d+(?:\.\d+)?)/g)].map((match) => Number(match[1]));
-  if (!numbers.length) return null;
-
-  const quantity = numbers.length > 1 ? (numbers[0] + numbers[1]) / 2 : numbers[0];
-
-  if (/\b(hour|hours|hora|horas)\b/.test(text)) {
-    return Math.round(quantity * 60);
-  }
-
-  return Math.round(quantity);
-}
-
-function flattenJsonLd(node) {
-  if (!node) return [];
-  if (Array.isArray(node)) return node.flatMap(flattenJsonLd);
-  if (typeof node !== 'object') return [];
-  const items = [node];
-  if (Array.isArray(node['@graph'])) {
-    items.push(...flattenJsonLd(node['@graph']));
-  }
-  return items;
-}
-
-function extractRecipeJsonLd(html) {
-  const scripts = [...html.matchAll(/<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)];
-
-  for (const script of scripts) {
-    try {
-      const payload = JSON.parse(script[1].trim());
-      const recipe = flattenJsonLd(payload).find((item) => {
-        const type = item?.['@type'];
-        if (Array.isArray(type)) return type.includes('Recipe');
-        return type === 'Recipe';
-      });
-      if (recipe) return recipe;
-    } catch {}
-  }
-
-  return null;
-}
-
-function normalizeInstructions(value) {
-  if (!value) return [];
-  if (Array.isArray(value)) {
-    return value.flatMap((item) => {
-      if (typeof item === 'string') return [item.trim()];
-      if (typeof item?.text === 'string') return [item.text.trim()];
-      if (Array.isArray(item?.itemListElement)) return normalizeInstructions(item.itemListElement);
-      return [];
-    }).filter(Boolean);
-  }
-  if (typeof value === 'string') return [value.trim()];
-  if (typeof value?.text === 'string') return [value.text.trim()];
-  return [];
-}
-
-function parsePortionWeight(value) {
-  const text = String(value || '').replace(',', '.');
-  const match = text.match(/\((\d+(?:\.\d+)?)\s*g\)/i) || text.match(/(\d+(?:\.\d+)?)\s*g\b/i);
-  return match ? Number(match[1]) : null;
-}
-
-function extractTitleFromHtml(html, sourceUrl) {
-  const headingMatch = String(html || '').match(/<h1[^>]*>\s*([^<]+?)\s*<\/h1>/i);
-  if (headingMatch) return decodeHtmlEntities(headingMatch[1]).trim();
-
-  const titleMatch = String(html || '').match(/<title[^>]*>\s*([^<]+?)\s*<\/title>/i);
-  if (titleMatch) {
-    return decodeHtmlEntities(titleMatch[1])
-      .replace(/\s*[:|-]\s*MedlinePlus.*$/i, '')
-      .trim();
-  }
-
-  const slug = new URL(sourceUrl).pathname.split('/').filter(Boolean).pop() || 'recipe';
-  return slug
-    .split('-')
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(' ');
-}
-
-function findLineValue(lines, patterns) {
-  for (const line of lines) {
-    for (const pattern of patterns) {
-      const match = line.match(pattern);
-      if (match) return match[1]?.trim() || '';
-    }
-  }
-  return '';
-}
-
-function collectSectionLines(lines, startPatterns, stopPatterns) {
-  const startIndex = lines.findIndex((line) => startPatterns.some((pattern) => pattern.test(line)));
-  if (startIndex === -1) return [];
-
-  const collected = [];
-  for (let index = startIndex + 1; index < lines.length; index++) {
-    const line = lines[index];
-    if (stopPatterns.some((pattern) => pattern.test(line))) break;
-    if (!line) continue;
-    collected.push(line.replace(/^[•*-]\s*/, '').trim());
-  }
-  return collected;
-}
-
-function isMenuSuitableRecipe(candidate, source) {
-  const title = String(candidate.title || candidate.name || '').toLowerCase();
-  const categories = normalizeInstructions([
-    ...(Array.isArray(candidate.tags) ? candidate.tags : []),
-    ...(Array.isArray(candidate.recipeCategory) ? candidate.recipeCategory : candidate.recipeCategory ? [candidate.recipeCategory] : []),
-    ...(Array.isArray(candidate.keywords) ? candidate.keywords : typeof candidate.keywords === 'string' ? candidate.keywords.split(',') : [])
-  ]).map((item) => String(item).toLowerCase());
-
-  const haystack = `${title} ${categories.join(' ')}`;
-  const mealDishHints = /\b(omelet|omelette|oatmeal|toast|waffle|pancake|quesadilla|taquito|frittata|hash|bowl|soup|salad|taco|tacos|burrito|casserole|chili|stew|pasta|rice|quinoa|chicken|turkey|beef|fish|salmon|tilapia|tofu|lentil|bean|meatball|enchilada|lasagna|burger|pizza|pollo|pescado|salmon|tilapia|tofu|frijol|frijoles|lenteja|lentejas|arroz|ensalada|sopa|alb[oó]ndiga|alb[oó]ndigas|enchilada|cazuela|chile|guisado|pozole|pupusa|salteado|salm[oó]n)\b/;
-  const nonMenuHints = /\b(dressing|aderezo|sauce|dip|beverage|drink|smoothie|batido|juice|jugo|cocktail|dessert|postre)\b/;
-
-  if (nonMenuHints.test(title) && !mealDishHints.test(title)) return false;
-  if (/\b(side dish|side|accompaniment|acompañamiento)\b/.test(haystack) && !mealDishHints.test(title)) return false;
-  if (source.mealType === 'breakfast' && /\b(french toast|oatmeal|waffle|pancake|toast|burrito|casserole|quesadilla)\b/.test(title)) return true;
-  if (/\b(salsa)\b/.test(title) && !mealDishHints.test(title)) return false;
-  if (mealDishHints.test(title)) return true;
-  if (source.mealType !== 'breakfast' && /\b(soup|salad|sopa|ensalada)\b/.test(title)) return true;
-
-  return true;
-}
-
-function mapJsonLdToRecipe(recipe, source, sourceUrl) {
-  const keywords = typeof recipe.keywords === 'string'
-    ? recipe.keywords.split(',').map((item) => item.trim()).filter(Boolean)
-    : Array.isArray(recipe.keywords)
-      ? recipe.keywords.map((item) => String(item).trim()).filter(Boolean)
-      : [];
-
-  const categories = Array.isArray(recipe.recipeCategory)
-    ? recipe.recipeCategory
-    : recipe.recipeCategory
-      ? [recipe.recipeCategory]
-      : [];
-
-  const mapped = {
-    title: recipe.name,
-    description: recipe.description || '',
-    instructions: normalizeInstructions(recipe.recipeInstructions),
-    servings: parseServings(recipe.recipeYield),
-    cookingTimeMinutes: parseIsoDurationToMinutes(recipe.totalTime)
-      ?? (parseIsoDurationToMinutes(recipe.prepTime) || 0) + (parseIsoDurationToMinutes(recipe.cookTime) || 0),
-    cuisine: recipe.recipeCuisine || null,
-    mealType: source.mealType,
-    sourceType: source.sourceType,
-    sourceTitle: source.sourceTitle,
-    sourceUrl,
-    license: 'open-web',
-    tags: unique([
-      ...source.tags,
-      `lang:${source.language}`,
-      ...keywords,
-      ...categories.map((item) => String(item).trim())
-    ]),
-    ingredients: Array.isArray(recipe.recipeIngredient) ? recipe.recipeIngredient : [],
-    nutrition: {
-      calories: parseNutritionNumber(recipe.nutrition?.calories),
-      protein: parseNutritionNumber(recipe.nutrition?.proteinContent),
-      fat: parseNutritionNumber(recipe.nutrition?.fatContent),
-      carbs: parseNutritionNumber(recipe.nutrition?.carbohydrateContent),
-      fiber: parseNutritionNumber(recipe.nutrition?.fiberContent),
-      portionWeight: null
+function makeReport(options) {
+  return {
+    startedAt: new Date().toISOString(),
+    finishedAt: null,
+    mode: options.dryRun ? 'dry-run' : 'database-import',
+    activateEligible: options.activateEligible,
+    sourceCount: 0,
+    discoveredCandidates: 0,
+    uniqueCandidates: 0,
+    duplicateCandidateUrls: 0,
+    fetchedCandidates: 0,
+    parsedRecipes: 0,
+    rejectedByParserOrCriticalQa: 0,
+    excludedByLicensePolicy: 0,
+    importedOrUpdated: 0,
+    importFailures: 0,
+    databaseRowsTouched: null,
+    databaseUniqueSourceUrls: null,
+    databaseUniqueContentHashes: null,
+    fetchFailures: 0,
+    byLanguage: {},
+    byMealType: {},
+    byStatus: {},
+    nutritionCoverage: {
+      caloriesPresent: 0,
+      fullMacrosPresent: 0,
+      cookingTimePresent: 0,
+      cuisinePresent: 0,
+      estimatedByUsda: 0,
+      estimationSkipped: 0
     },
-    status: 'active'
+    bySource: {},
+    quality: { eligibleForActivation: 0, criticalFailure: 0, warningCount: 0 },
+    samples: [],
+    failures: []
   };
-
-  mapped.status = isMenuSuitableRecipe(mapped, source) ? 'active' : 'draft';
-  return mapped;
 }
 
-function extractMedlinePlusRecipe(html, source, sourceUrl) {
-  const text = stripHtml(html);
-  const lines = text.split('\n').map((line) => line.trim()).filter(Boolean);
-
-  const prep = parseDurationText(findLineValue(lines, [/^Prep time:\s*(.+)$/i, /^Tiempo de preparación:\s*(.+)$/i]));
-  const cook = parseDurationText(findLineValue(lines, [/^Cook time:\s*(.+)$/i, /^Tiempo de cocción:\s*(.+)$/i]));
-  const total = parseDurationText(findLineValue(lines, [/^Total time:\s*(.+)$/i, /^Tiempo total:\s*(.+)$/i]));
-  const servings = parseServings(findLineValue(lines, [/^Servings:\s*(.+)$/i, /^Porciones:\s*(.+)$/i]));
-  const portionWeight = parsePortionWeight(findLineValue(lines, [/^Serving size\s+(.+)$/i, /^Tamaño por ración\s+(.+)$/i]));
-  const ingredients = collectSectionLines(
-    lines,
-    [/^Ingredients$/i, /^Ingredientes$/i],
-    [/^Preparation$/i, /^Preparación$/i, /^Nutrition/i, /^Información nutricional$/i, /^Related health topics$/i, /^Temas de salud relacionados$/i]
-  );
-  const preparationLines = collectSectionLines(
-    lines,
-    [/^Preparation$/i, /^Preparación$/i],
-    [/^Notes:?$/i, /^Nutrition/i, /^Información nutricional$/i, /^Related health topics$/i, /^Temas de salud relacionados$/i]
-  );
-
-  const instructions = preparationLines
-    .map((line) => line.replace(/^\d+\.\s*/, '').trim())
-    .filter(Boolean);
-
-  if (!ingredients.length || !instructions.length) return null;
-
-  const mapped = {
-    title: extractTitleFromHtml(html, sourceUrl),
-    description: `${source.sourceTitle} (${source.language.toUpperCase()})`.trim(),
-    instructions,
-    servings,
-    cookingTimeMinutes: (total ?? ((prep || 0) + (cook || 0))) || null,
-    cuisine: null,
-    mealType: source.mealType,
-    sourceType: source.sourceType,
-    sourceTitle: source.sourceTitle,
-    sourceUrl,
-    license: 'open-web',
-    tags: unique([
-      ...source.tags,
-      `lang:${source.language}`,
-      'html-extracted'
-    ]),
-    ingredients,
-    nutrition: {
-      calories: parseNutritionNumber(findLineValue(lines, [/^Calories\s+(.+)$/i, /^Calorías\s+(.+)$/i])),
-      protein: parseNutritionNumber(findLineValue(lines, [/^Protein(?:s)?\s+(.+)$/i, /^Proteínas\s+(.+)$/i])),
-      fat: parseNutritionNumber(findLineValue(lines, [/^Total Fat\s+(.+)$/i, /^Grasa Total\s+(.+)$/i])),
-      carbs: parseNutritionNumber(findLineValue(lines, [/^Total Carbohydrate\s+(.+)$/i, /^Carbohidrato Total\s+(.+)$/i])),
-      fiber: parseNutritionNumber(findLineValue(lines, [/^Dietary Fiber\s+(.+)$/i, /^Fibra Dietética\s+(.+)$/i])),
-      portionWeight
-    },
-    status: 'active'
-  };
-
-  mapped.status = isMenuSuitableRecipe(mapped, source) ? 'active' : 'draft';
-  return mapped;
-}
-
-function discoverRecipeLinks(html, collectionUrl) {
-  const base = new URL(collectionUrl);
-  const blockedCollectionSlugs = [
-    'breakfast',
-    'lunch',
-    'dinner',
-    'desserts',
-    'breads',
-    'dairy-free',
-    'dips-salsas-and-sauces',
-    'drinks',
-    'gluten-sensitive',
-    'low-fat',
-    'low-sodium',
-    'salads',
-    'side-dishes',
-    'snacks',
-    'soups',
-    'vegetarian',
-    'desayuno',
-    'almuerzo',
-    'cena',
-    'postres',
-    'acompanamientos',
-    'bajo-en-grasa',
-    'bajo-en-sodio',
-    'bebidas',
-    'bocadillos',
-    'ensaladas',
-    'pan',
-    'salsas-y-aderezos',
-    'sin-gluten',
-    'sin-lacteos',
-    'sopas',
-    'vegetariana'
-  ];
-  const links = [...html.matchAll(/href\s*=\s*["']([^"']+)["']/gi)]
-    .map((match) => match[1])
-    .map((href) => {
-      try {
-        return new URL(href, base).toString();
-      } catch {
-        return null;
-      }
-    })
-    .filter(Boolean)
-    .filter((href) => href.startsWith(`${base.protocol}//${base.host}`))
-    .filter((href) => /\/recipes\/.+\/$/i.test(href) || /\/spanish\/recetas\/.+\/$/i.test(href))
-    .filter((href) => href !== collectionUrl)
-    .filter((href) => {
-      const slug = new URL(href).pathname.split('/').filter(Boolean).pop() || '';
-      return !blockedCollectionSlugs.includes(slug.toLowerCase());
-    });
-
-  return unique(links);
-}
-
-async function fetchHtml(url) {
-  const response = await fetch(url, {
-    headers: {
-      'user-agent': 'nutrition-bot-recipe-import/1.0'
-    }
-  });
-
-  if (!response.ok) {
-    throw new Error(`Failed to fetch ${url}: ${response.status}`);
+function addFailure(report, source, candidate, error) {
+  report.fetchFailures += 1;
+  if (report.failures.length < 100) {
+    report.failures.push({ sourceId: source.id, url: candidate.url, error: error.message });
   }
-
-  return response.text();
 }
 
 async function main() {
   const args = parseArgs(process.argv.slice(2));
-  const sourceFilter = args.source ? String(args.source) : null;
-  const maxPerCollection = Math.max(1, Number(args.limitPerCollection) || 12);
+  const selectedIds = args.source ? new Set(String(args.source).split(',').filter(Boolean)) : null;
+  const selectedLanguages = args.language ? new Set(String(args.language).split(',').filter(Boolean)) : null;
+  const limitPerSource = Math.max(0, Number(args.limitPerSource ?? args.limitPerCollection ?? 0) || 0);
+  const concurrency = Math.max(1, Math.min(8, Number(args.concurrency) || 4));
+  const options = {
+    dryRun: Boolean(args.dryRun),
+    activateEligible: Boolean(args.activateEligible),
+    timeoutMs: Math.max(1000, Number(args.timeoutMs) || 20000),
+    retries: Math.max(0, Number(args.retries ?? 2)),
+    estimateNutrition: Boolean(args.estimateNutrition)
+  };
+  const nutritionIndex = options.estimateNutrition
+    ? loadFoodIndex(args.foodIndex ? path.resolve(args.foodIndex) : undefined)
+    : null;
+  const reportPath = path.resolve(args.report || 'reports/web-recipe-import-latest.json');
+  const report = makeReport(options);
+  const discovered = [];
+  let db = null;
+  let importRecipeBatch = null;
+
+  if (!options.dryRun) {
+    ({ importRecipeBatch } = require('../services/recipeImportService'));
+    db = require('../services/db');
+  }
 
   try {
-    let importedCount = 0;
+    const sources = webRecipeSources.filter((source) => {
+      if (selectedIds && !selectedIds.has(source.id)) return false;
+      if (selectedLanguages && !selectedLanguages.has(source.language)) return false;
+      return true;
+    });
+    report.sourceCount = sources.length;
 
-    for (const source of webRecipeSources) {
-      if (sourceFilter && source.id !== sourceFilter) continue;
-
-      console.log(`Discovering recipes from ${source.collectionUrl}`);
-      const collectionHtml = await fetchHtml(source.collectionUrl);
-      const recipeLinks = discoverRecipeLinks(collectionHtml, source.collectionUrl).slice(0, maxPerCollection);
-      console.log(`Found ${recipeLinks.length} candidate links for ${source.id}`);
-
-      for (const recipeUrl of recipeLinks) {
-        try {
-          const html = await fetchHtml(recipeUrl);
-          const jsonLdRecipe = extractRecipeJsonLd(html);
-          const mapped = jsonLdRecipe
-            ? mapJsonLdToRecipe(jsonLdRecipe, source, recipeUrl)
-            : extractMedlinePlusRecipe(html, source, recipeUrl);
-          if (!mapped) {
-            console.warn(`Skipping ${recipeUrl}: structured recipe data not found`);
-            continue;
-          }
-
-          const saved = await importRecipeBatch([mapped], {
-            sourceType: source.sourceType,
-            sourceTitle: source.sourceTitle,
-            sourceUrl: recipeUrl,
-            tags: source.tags
-          });
-
-          if (saved.length > 0) {
-            importedCount += saved.length;
-            console.log(`Imported web recipe: ${mapped.title}`);
-          }
-        } catch (error) {
-          console.warn(`Web recipe import failed for ${recipeUrl}: ${error.message}`);
-        }
+    for (const source of sources) {
+      console.log(`Discovering ${source.id} from ${source.collectionUrl}`);
+      try {
+        const candidates = await discoverSourceCandidates(source, limitPerSource);
+        report.discoveredCandidates += candidates.length;
+        report.bySource[source.id] = {
+          language: source.language,
+          discovered: candidates.length,
+          unique: 0,
+          parsed: 0,
+          importedOrUpdated: 0,
+          failures: 0
+        };
+        discovered.push(...candidates.map((candidate) => ({ source, candidate })));
+      } catch (error) {
+        report.bySource[source.id] = { language: source.language, discovered: 0, unique: 0, parsed: 0, importedOrUpdated: 0, failures: 1 };
+        addFailure(report, source, { url: source.collectionUrl }, error);
       }
     }
 
-    console.log(`Web recipe import completed. Imported/updated ${importedCount} recipes.`);
+    const uniqueCandidates = [];
+    const seen = new Set();
+    for (const item of discovered) {
+      const key = normalizedCandidateKey(item.candidate);
+      if (seen.has(key)) {
+        report.duplicateCandidateUrls += 1;
+        continue;
+      }
+      seen.add(key);
+      uniqueCandidates.push(item);
+      report.bySource[item.source.id].unique += 1;
+    }
+    report.uniqueCandidates = uniqueCandidates.length;
+    console.log(`Processing ${uniqueCandidates.length} unique candidates with concurrency=${concurrency}`);
+
+    const processed = await mapWithConcurrency(uniqueCandidates, concurrency, async ({ source, candidate }, index) => {
+      try {
+        const fetchedRecipe = await fetchAndMapCandidate(source, candidate, options);
+        report.fetchedCandidates += 1;
+        if (!fetchedRecipe) {
+          report.rejectedByParserOrCriticalQa += 1;
+          return null;
+        }
+        const estimatedRecipe = nutritionIndex
+          ? estimateRecipeNutrition(fetchedRecipe, nutritionIndex)
+          : fetchedRecipe;
+        const recipe = nutritionIndex
+          ? finalizeRecipe(estimatedRecipe, source, options.activateEligible)
+          : estimatedRecipe;
+        report.parsedRecipes += 1;
+        report.bySource[source.id].parsed += 1;
+        if (recipe.qualityReport.critical.length) report.quality.criticalFailure += 1;
+        if (recipe.qualityReport.eligibleForActivation) report.quality.eligibleForActivation += 1;
+        report.quality.warningCount += recipe.qualityReport.warnings.length;
+        if (report.samples.length < 30) {
+          report.samples.push({
+            title: recipe.title,
+            url: recipe.sourceUrl,
+            language: recipe.language,
+            mealType: recipe.mealType,
+            status: recipe.status,
+            qualityScore: recipe.qualityScore,
+            critical: recipe.qualityReport.critical,
+            warnings: recipe.qualityReport.warnings
+          });
+        }
+        if ((index + 1) % 50 === 0) console.log(`Processed ${index + 1}/${uniqueCandidates.length}`);
+        return { source, recipe };
+      } catch (error) {
+        report.bySource[source.id].failures += 1;
+        addFailure(report, source, candidate, error);
+        return null;
+      }
+    });
+
+    const valid = processed.filter(Boolean);
+    const qaPassed = valid.filter(({ recipe }) => recipe.qualityReport.critical.length === 0);
+    const importable = qaPassed.filter(({ source, recipe }) => (
+      source.allowsImport !== false && recipe.provenance?.importAllowed !== false
+    ));
+    report.rejectedByParserOrCriticalQa += valid.length - qaPassed.length;
+    report.excludedByLicensePolicy = qaPassed.length - importable.length;
+    report.byLanguage = countBy(importable, ({ recipe }) => recipe.language);
+    report.byMealType = countBy(importable, ({ recipe }) => recipe.mealType);
+    report.byStatus = countBy(importable, ({ recipe }) => recipe.status);
+    report.nutritionCoverage = {
+      caloriesPresent: importable.filter(({ recipe }) => recipe.nutrition?.calories !== null && recipe.nutrition?.calories !== undefined).length,
+      fullMacrosPresent: importable.filter(({ recipe }) => ['protein', 'fat', 'carbs'].every((key) => recipe.nutrition?.[key] !== null && recipe.nutrition?.[key] !== undefined)).length,
+      cookingTimePresent: importable.filter(({ recipe }) => Boolean(recipe.cookingTimeMinutes)).length,
+      cuisinePresent: importable.filter(({ recipe }) => Boolean(recipe.cuisine)).length,
+      estimatedByUsda: importable.filter(({ recipe }) => recipe.provenance?.nutritionEstimate?.status === 'calculated').length,
+      estimationSkipped: importable.filter(({ recipe }) => recipe.provenance?.nutritionEstimate?.status === 'skipped').length
+    };
+
+    if (!options.dryRun) {
+      for (const { source, recipe } of importable) {
+        try {
+          const saved = await importRecipeBatch([recipe]);
+          if (saved.length) {
+            report.importedOrUpdated += saved.length;
+            report.bySource[source.id].importedOrUpdated += saved.length;
+          }
+        } catch (error) {
+          report.importFailures += 1;
+          report.bySource[source.id].failures += 1;
+          if (report.failures.length < 100) {
+            report.failures.push({ sourceId: source.id, url: recipe.sourceUrl, stage: 'database-import', error: error.message });
+          }
+        }
+      }
+
+      const databaseSnapshot = await db.query(
+        `SELECT
+           count(*)::int AS rows_touched,
+           count(DISTINCT normalized_source_url)::int AS unique_source_urls,
+           count(DISTINCT content_hash)::int AS unique_content_hashes
+         FROM recipes
+         WHERE source_checked_at >= $1`,
+        [report.startedAt]
+      );
+      report.databaseRowsTouched = databaseSnapshot.rows[0].rows_touched;
+      report.databaseUniqueSourceUrls = databaseSnapshot.rows[0].unique_source_urls;
+      report.databaseUniqueContentHashes = databaseSnapshot.rows[0].unique_content_hashes;
+    }
+
+    report.finishedAt = new Date().toISOString();
+    fs.mkdirSync(path.dirname(reportPath), { recursive: true });
+    fs.writeFileSync(reportPath, `${JSON.stringify(report, null, 2)}\n`);
+    console.log(JSON.stringify({
+      report: reportPath,
+      mode: report.mode,
+      sources: report.sourceCount,
+      discovered: report.discoveredCandidates,
+      unique: report.uniqueCandidates,
+      parsed: report.parsedRecipes,
+      qaPassed: importable.length,
+      excludedByLicensePolicy: report.excludedByLicensePolicy,
+      importedOrUpdated: report.importedOrUpdated,
+      databaseRowsTouched: report.databaseRowsTouched,
+      byLanguage: report.byLanguage,
+      byStatus: report.byStatus,
+      failures: report.fetchFailures + report.importFailures
+    }, null, 2));
   } catch (error) {
+    report.finishedAt = new Date().toISOString();
+    report.fatalError = error.message;
+    fs.mkdirSync(path.dirname(reportPath), { recursive: true });
+    fs.writeFileSync(reportPath, `${JSON.stringify(report, null, 2)}\n`);
     console.error('Web recipe import failed:', error);
     process.exitCode = 1;
   } finally {
-    await db.pool.end();
+    if (db) await db.pool.end();
   }
 }
 
-main();
+if (require.main === module) main();
+
+module.exports = { countBy, main, normalizedCandidateKey, parseArgs };

@@ -1,0 +1,2 @@
+ALTER TABLE recipes
+    ALTER COLUMN cuisine TYPE TEXT;

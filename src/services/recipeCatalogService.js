@@ -85,7 +85,16 @@ function mapRecipeRow(row) {
     sourceType: row.source_type,
     sourceTitle: row.source_title,
     sourceUrl: row.source_url,
+    normalizedSourceUrl: row.normalized_source_url,
+    language: row.language,
     license: row.license,
+    licenseUrl: row.license_url,
+    sourceCheckedAt: row.source_checked_at,
+    sourceRevision: row.source_revision,
+    contentHash: row.content_hash,
+    qualityScore: row.quality_score === null ? null : Number(row.quality_score),
+    qualityReport: row.quality_report || {},
+    provenance: row.provenance || {},
     searchText: row.search_text,
     embeddingKey: row.embedding_key,
     status: row.status,
@@ -261,7 +270,16 @@ async function createRecipe(recipe) {
       sourceType: normalizeText(recipe.sourceType || '') || null,
       sourceTitle: normalizeText(recipe.sourceTitle || '') || null,
       sourceUrl: normalizeText(recipe.sourceUrl || '') || null,
+      normalizedSourceUrl: normalizeText(recipe.normalizedSourceUrl || '') || null,
+      language: normalizeText(recipe.language || '') || null,
       license: normalizeText(recipe.license || '') || null,
+      licenseUrl: normalizeText(recipe.licenseUrl || '') || null,
+      sourceCheckedAt: normalizeText(recipe.sourceCheckedAt || '') || null,
+      sourceRevision: normalizeText(recipe.sourceRevision || '') || null,
+      contentHash: normalizeText(recipe.contentHash || '') || null,
+      qualityScore: coerceNullableNumber(recipe.qualityScore),
+      qualityReport: recipe.qualityReport || {},
+      provenance: recipe.provenance || {},
       embeddingKey: normalizeText(recipe.embeddingKey || '') || null,
       status: normalizeText(recipe.status || 'draft'),
       tags: normalizeStringArray(recipe.tags),
@@ -276,12 +294,16 @@ async function createRecipe(recipe) {
       `INSERT INTO recipes (
          title, description, instructions, servings, cooking_time_minutes,
          difficulty, cuisine, meal_type, source_type, source_title,
-         source_url, license, search_text, embedding_key, status
+         source_url, license, search_text, embedding_key, status,
+         normalized_source_url, language, license_url, source_checked_at,
+         source_revision, content_hash, quality_score, quality_report, provenance
        )
        VALUES (
          $1, $2, $3::jsonb, $4, $5,
          $6, $7, $8, $9, $10,
-         $11, $12, $13, $14, $15
+         $11, $12, $13, $14, $15,
+         $16, $17, $18, $19,
+         $20, $21, $22, $23::jsonb, $24::jsonb
        )
        RETURNING id`,
       [
@@ -299,7 +321,16 @@ async function createRecipe(recipe) {
         payload.license,
         buildSearchText(payload),
         payload.embeddingKey,
-        payload.status
+        payload.status,
+        payload.normalizedSourceUrl,
+        payload.language,
+        payload.licenseUrl,
+        payload.sourceCheckedAt,
+        payload.sourceRevision,
+        payload.contentHash,
+        payload.qualityScore,
+        JSON.stringify(payload.qualityReport),
+        JSON.stringify(payload.provenance)
       ]
     );
 
@@ -341,7 +372,16 @@ async function updateRecipe(recipeId, changes) {
       sourceType: changes.sourceType !== undefined ? (normalizeText(changes.sourceType) || null) : current.sourceType,
       sourceTitle: changes.sourceTitle !== undefined ? (normalizeText(changes.sourceTitle) || null) : current.sourceTitle,
       sourceUrl: changes.sourceUrl !== undefined ? (normalizeText(changes.sourceUrl) || null) : current.sourceUrl,
+      normalizedSourceUrl: changes.normalizedSourceUrl !== undefined ? (normalizeText(changes.normalizedSourceUrl) || null) : current.normalizedSourceUrl,
+      language: changes.language !== undefined ? (normalizeText(changes.language) || null) : current.language,
       license: changes.license !== undefined ? (normalizeText(changes.license) || null) : current.license,
+      licenseUrl: changes.licenseUrl !== undefined ? (normalizeText(changes.licenseUrl) || null) : current.licenseUrl,
+      sourceCheckedAt: changes.sourceCheckedAt !== undefined ? (normalizeText(changes.sourceCheckedAt) || null) : current.sourceCheckedAt,
+      sourceRevision: changes.sourceRevision !== undefined ? (normalizeText(changes.sourceRevision) || null) : current.sourceRevision,
+      contentHash: changes.contentHash !== undefined ? (normalizeText(changes.contentHash) || null) : current.contentHash,
+      qualityScore: changes.qualityScore !== undefined ? coerceNullableNumber(changes.qualityScore) : current.qualityScore,
+      qualityReport: changes.qualityReport !== undefined ? changes.qualityReport : current.qualityReport,
+      provenance: changes.provenance !== undefined ? changes.provenance : current.provenance,
       embeddingKey: changes.embeddingKey !== undefined ? (normalizeText(changes.embeddingKey) || null) : current.embeddingKey,
       status: changes.status !== undefined ? normalizeText(changes.status) : current.status,
       tags: changes.tags !== undefined ? normalizeStringArray(changes.tags) : current.tags
@@ -368,6 +408,15 @@ async function updateRecipe(recipeId, changes) {
          search_text = $14,
          embedding_key = $15,
          status = $16,
+         normalized_source_url = $17,
+         language = $18,
+         license_url = $19,
+         source_checked_at = $20,
+         source_revision = $21,
+         content_hash = $22,
+         quality_score = $23,
+         quality_report = $24::jsonb,
+         provenance = $25::jsonb,
          updated_at = NOW()
        WHERE id = $1`,
       [
@@ -386,7 +435,16 @@ async function updateRecipe(recipeId, changes) {
         next.license,
         buildSearchText(next),
         next.embeddingKey,
-        next.status
+        next.status,
+        next.normalizedSourceUrl,
+        next.language,
+        next.licenseUrl,
+        next.sourceCheckedAt,
+        next.sourceRevision,
+        next.contentHash,
+        next.qualityScore,
+        JSON.stringify(next.qualityReport || {}),
+        JSON.stringify(next.provenance || {})
       ]
     );
 

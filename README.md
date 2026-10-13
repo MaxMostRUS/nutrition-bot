@@ -62,6 +62,24 @@ npm run seed:recipes
 - помечает их как `active`;
 - пропускает рецепты, которые уже есть по названию.
 
+Seed не является основным источником каталога. Для реальных RU/EN/ES рецептов используйте web pipeline:
+
+```bash
+npm run import:web:recipes -- --dryRun --report=reports/web-recipe-import.json
+npm run import:web:recipes -- --report=reports/web-recipe-db-import.json
+```
+
+Для воспроизводимого расчёта недостающих БЖУ по сырым/сухим ингредиентам сначала соберите локальный индекс USDA FoodData Central, затем включите enrichment:
+
+```bash
+npm run prepare:usda-foods
+npm run import:web:recipes -- --estimateNutrition --report=reports/web-recipe-db-import.json
+```
+
+Расчёт заполняет БЖУ только при полном сопоставлении значимых ингредиентов и известном числе порций; в противном случае поля остаются `null`.
+
+Источники, лицензирование, QA-gate, дедупликация и параметры запуска описаны в [docs/WEB_RECIPE_IMPORT.md](docs/WEB_RECIPE_IMPORT.md).
+
 ### PDF-книги как knowledge base
 
 Чтобы загрузить кулинарные книги в searchable knowledge base:
