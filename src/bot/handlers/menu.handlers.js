@@ -281,6 +281,9 @@ async function registerMenuCommands(bot) {
     msg += `\n👨‍🍳 <b>Шаги приготовления:</b>\n`;
     steps.forEach((step, i) => { msg += `${i + 1}. ${escapeHtml(step)}\n`; });
     msg += `\n⏱ <b>Время приготовления:</b> ~${cookingTimeMinutes} минут\n`;
+    if (meal.recipe?.servingScale) {
+      msg += '⚖️ <b>Ингредиенты рассчитаны на порцию из меню.</b>\n';
+    }
     await ctx.answerCbQuery();
     await ctx.reply(msg, { parse_mode: 'HTML' });
   });

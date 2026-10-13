@@ -93,7 +93,7 @@ function normalizeInstructions(value) {
 }
 
 function normalizeNutrition(nutrition = {}) {
-  return {
+  const normalized = {
     calories: toNullableNumber(nutrition.calories),
     protein: toNullableNumber(nutrition.protein),
     fat: toNullableNumber(nutrition.fat),
@@ -101,6 +101,19 @@ function normalizeNutrition(nutrition = {}) {
     fiber: toNullableNumber(nutrition.fiber),
     portionWeight: toNullableNumber(nutrition.portionWeight)
   };
+
+  // If calories are absent, derive them from macros. If the source numbers
+  // disagree materially, keep the record reviewable instead of hiding it.
+  const macroCalories = normalized.protein !== null && normalized.fat !== null && normalized.carbs !== null
+    ? normalized.protein * 4 + normalized.fat * 9 + normalized.carbs * 4
+    : null;
+  if (normalized.calories === null && macroCalories !== null) {
+    normalized.calories = Math.round(macroCalories);
+  }
+  normalized.macroCalories = macroCalories !== null ? Math.round(macroCalories) : null;
+  normalized.needsNutritionReview = normalized.calories !== null && macroCalories !== null
+    && Math.abs(normalized.calories - macroCalories) / Math.max(normalized.calories, 1) > 0.25;
+  return normalized;
 }
 
 function buildEmbeddingKey(recipe) {
@@ -112,9 +125,12 @@ function buildEmbeddingKey(recipe) {
 
 function normalizeImportedRecipe(recipe, defaults = {}) {
   const title = normalizeText(recipe.title);
+  const normalizedNutrition = normalizeNutrition(recipe.nutrition || defaults.nutrition || {});
+  const { macroCalories, needsNutritionReview, ...nutrition } = normalizedNutrition;
   const tags = Array.from(new Set([
     ...normalizeStringArray(defaults.tags),
-    ...normalizeStringArray(recipe.tags)
+    ...normalizeStringArray(recipe.tags),
+    ...(needsNutritionReview ? ['nutrition-review'] : [])
   ]));
 
   const mealType = normalizeMealType(recipe.mealType || defaults.mealType, title, tags);
@@ -142,9 +158,11 @@ function normalizeImportedRecipe(recipe, defaults = {}) {
       ...recipe,
       title
     }),
-    status: normalizeText(recipe.status || defaults.status || 'active'),
+    status: normalizeText(
+      recipe.status || defaults.status || (needsNutritionReview ? 'review' : 'active')
+    ),
     tags,
-    nutrition: normalizeNutrition(recipe.nutrition || defaults.nutrition || {}),
+    nutrition,
     ingredients
   };
 }
