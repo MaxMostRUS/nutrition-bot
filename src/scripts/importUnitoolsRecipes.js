@@ -45,7 +45,9 @@ function mapRecipe(recipe, index, language) {
     mealType: mealTypeFor(recipe, index),
     sourceType: 'open_dataset_unitools',
     sourceTitle: 'UniTools World Recipes',
-    sourceUrl: DATASET_PAGE,
+    // Keep a stable per-recipe provenance key; the importer upserts non-PDF
+    // records by source URL before checking the embedding key.
+    sourceUrl: `${DATASET_PAGE}#${recipe.slug}`,
     license: 'CC BY-SA 4.0',
     embeddingKey: `unitools:${recipe.slug}:${language}`,
     tags: [
@@ -102,4 +104,3 @@ main().catch((error) => {
   console.error('UniTools import failed:', error);
   process.exitCode = 1;
 });
-
