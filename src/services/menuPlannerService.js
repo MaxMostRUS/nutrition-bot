@@ -8,7 +8,12 @@ const DEFAULT_MEAL_DISTRIBUTION = {
   dinner: 0.35
 };
 
-const IMPORTED_SOURCE_TYPES = ['pdf_book_recipe', 'web_medlineplus', 'web_medlineplus_es'];
+const IMPORTED_SOURCE_TYPES = [
+  'pdf_book_recipe',
+  'web_medlineplus',
+  'web_medlineplus_es',
+  'open_dataset_unitools'
+];
 const SEED_SOURCE_TYPES = ['seed'];
 
 function uniqueNumbers(values) {

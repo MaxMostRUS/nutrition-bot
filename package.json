@@ -10,6 +10,7 @@
     "ingest:books": "node src/scripts/ingestPdfKnowledge.js",
     "import:pdf:recipes": "node src/scripts/importPdfRecipes.js",
     "import:web:recipes": "node src/scripts/importWebRecipes.js",
+    "import:unitools:recipes": "node src/scripts/importUnitoolsRecipes.js",
     "dedupe:recipes": "node src/scripts/dedupeRecipes.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
