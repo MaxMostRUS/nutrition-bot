@@ -12,7 +12,7 @@
     "import:web:recipes": "node src/scripts/importWebRecipes.js",
     "import:unitools:recipes": "node src/scripts/importUnitoolsRecipes.js",
     "dedupe:recipes": "node src/scripts/dedupeRecipes.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node --test test/*.test.js"
   },
   "keywords": [],
   "author": "",

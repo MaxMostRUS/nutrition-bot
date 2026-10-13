@@ -282,5 +282,7 @@ async function planWeeklyMenu({ userId, dailyCalories, protein, fat, carbs }) {
 }
 
 module.exports = {
-  planWeeklyMenu
+  planWeeklyMenu,
+  buildMealTargets,
+  convertRecipeToMeal
 };
