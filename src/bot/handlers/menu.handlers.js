@@ -240,12 +240,14 @@ async function registerMenuCommands(bot) {
       const title = escapeHtml(m.name);
       const mealLabel = m.meal_time === 'breakfast' ? 'Завтрак' : m.meal_time === 'lunch' ? 'Обед' : 'Ужин';
       const macros = escapeHtml(`Б${m.protein}/Ж${m.fat}/У${m.carbs}`);
-      const portion = escapeHtml(String(m.portion_weight));
+      const portion = m.portion_weight === null || m.portion_weight === undefined || Number(m.portion_weight) <= 0
+        ? 'вес не указан'
+        : `≈ ${Number(m.portion_weight)} г`;
       msg += `🍽️ <b>${mealLabel}</b>\n` +
              `• <b>${title}</b>\n` +
              `• Калории: ${m.calories} ккал\n` +
              `• БЖУ: ${macros}\n` +
-             `• Порция: ≈ ${portion} г\n\n`;
+             `• Порция: ${escapeHtml(portion)}\n\n`;
       buttons.push([{ text: m.name, callback_data: `recipe_${m.id}` }]);
     });
     await ctx.answerCbQuery();

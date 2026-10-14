@@ -38,13 +38,18 @@ function buildRecipePayload(recipe) {
 }
 
 function scaleRecipePayload(recipe, scaleFactor) {
+  const servings = Number(recipe.servings);
+  const baseServings = Number.isFinite(servings) && servings > 0 ? servings : 1;
   const ingredients = Array.isArray(recipe.ingredients)
     ? recipe.ingredients.map((item) => {
         if (item.amount === null || item.amount === undefined || Number.isNaN(Number(item.amount))) {
           return item.name;
         }
 
-        const scaledAmount = Math.round(Number(item.amount) * scaleFactor * 10) / 10;
+        // Catalog nutrition is per serving, while imported ingredient lists are
+        // normally for the whole recipe. Normalize the batch before scaling it
+        // to the calories selected for this meal.
+        const scaledAmount = Math.round((Number(item.amount) / baseServings) * scaleFactor * 10) / 10;
         const unit = item.unit ? ` ${item.unit}` : '';
         const note = item.note ? ` (${item.note})` : '';
         return `${scaledAmount}${unit} ${item.name}`.trim() + note;
@@ -202,7 +207,7 @@ function convertRecipeToMeal(dayNumber, mealTime, recipe, targets) {
   const scaleFactor = Math.max(0.25, Math.min(rawScaleFactor || 1, 4));
 
   function scale(value) {
-    if (value === null || value === undefined) return 0;
+    if (value === null || value === undefined || !Number.isFinite(Number(value))) return null;
     return Math.round(Number(value) * scaleFactor);
   }
 
@@ -226,6 +231,7 @@ function convertRecipeToMeal(dayNumber, mealTime, recipe, targets) {
     sourceTitle: recipe.sourceTitle,
     sourceType: recipe.sourceType,
     sourceUrl: recipe.sourceUrl,
+    servings: 1,
     ingredients: scaledPayload.ingredients,
     steps: scaledPayload.steps,
     cookingTimeMinutes: scaledPayload.cookingTimeMinutes,

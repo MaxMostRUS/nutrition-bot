@@ -42,3 +42,42 @@ test('planner keeps recipe ingredients and menu nutrition on one serving basis',
   assert.equal(meal.recipe.nutrition.calories, meal.calories);
   assert.equal(meal.recipe.nutrition.fat, meal.fat);
 });
+
+test('planner divides batch ingredients by recipe servings before calorie scaling', () => {
+  const meal = convertRecipeToMeal(1, 'breakfast', {
+    id: 43,
+    title: 'Batch oats',
+    servings: 4,
+    ingredients: [{ name: 'Oats', amount: 400, unit: 'g' }],
+    instructions: ['Mix'],
+    nutrition: {
+      calories: 400,
+      protein: 16,
+      fat: 8,
+      carbs: 60,
+      fiber: 8,
+      portionWeight: 120
+    }
+  }, {
+    calories: 200,
+    protein: 8,
+    fat: 4,
+    carbs: 30
+  });
+
+  assert.deepEqual(meal.recipe.ingredients, ['50 g Oats']);
+  assert.equal(meal.portionWeight, 60);
+});
+
+test('planner does not turn an unknown portion weight into zero grams', () => {
+  const meal = convertRecipeToMeal(1, 'lunch', {
+    id: 44,
+    title: 'Unknown portion',
+    servings: 2,
+    ingredients: [{ name: 'Tomato', amount: 2, unit: 'pcs' }],
+    nutrition: { calories: 500, protein: 20, fat: 10, carbs: 50, portionWeight: null }
+  }, { calories: 500, protein: 20, fat: 10, carbs: 50 });
+
+  assert.equal(meal.portionWeight, null);
+  assert.equal(meal.recipe.nutrition.portionWeight, null);
+});
