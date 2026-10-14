@@ -159,12 +159,14 @@ HERMES не является обязательным для текущего э
 - [x] изменение калорий и повторная сборка меню из меню;
 - [x] recipe-first planner с `imported_only` в тестовом режиме;
 - [x] согласование ингредиентов, порции и КБЖУ на одном serving basis;
+- [x] исправить масштабирование batch-рецептов: ингредиенты сначала делятся на `servings`, затем масштабируются под калории меню;
+- [x] не показывать отсутствующий вес порции как `0 г`;
 - [x] защита импорта от грубого расхождения калорий с Б/Ж/У через `review`;
 - [ ] завершить фоновый импорт PDF и проверить production DB;
 - [ ] пройти Telegram `/start` -> `/menu` end-to-end после последнего деплоя;
 - [x] заменить заглушку `npm test` на автоматические unit-проверки макросов и serving basis.
 
-Промежуточная проверка 2026-10-15: локальные тесты `11/11` проходят; production planner ранее подтвердил недельное меню из imported recipes. Остался только реальный Telegram smoke-тест после последнего обновления контейнера.
+Промежуточная проверка 2026-10-15: локальные тесты `13/13` проходят; production planner подтвердил корректное масштабирование batch-рецепта (`400 г / 4 порции -> 50 г` при половине целевых калорий). В production 577 активных рецептов, из них 384 пока без веса порции; они требуют enrichment или карантина до показа пользователю.
 
 ### Этап B — расширение каталога
 
@@ -227,6 +229,8 @@ HERMES не является обязательным для текущего э
 | 2026-10-13 | Web import: CC BY-SA first, drafts by default | 335 реальных EN/ES/RU рецептов из Wikibooks/Wikilibros прошли критический QA и импортированы в local dev; MedlinePlus оставлен research-only до проверки прав |
 | 2026-10-14 | Nutrition.gov + USDA nutrition enrichment | 50 federal recipes imported as local drafts; 23 received full estimated macros from measured ingredients and USDA SR Legacy, with match provenance; blog and non-federal recipes remained research-only |
 | 2026-10-14 | Public-domain cookbook audit before extraction | 4 Project Gutenberg books confirmed public domain in the USA, but kept as candidates until book-specific structure parsers are reviewed |
+| 2026-10-15 | Serving-basis invariant enforced in planner | Imported ingredient lists are batch-based while nutrition is per serving; planner now normalizes by `servings` before scaling and never renders missing portion weight as `0 г` |
+| 2026-10-15 | Quarantine instead of mass deletion | Preserve source provenance and recoverable recipes; only recipes failing serving, nutrition, or macro-calorie QA are removed from the active planner |
 
 ## 11. Правило обновления документа
 
