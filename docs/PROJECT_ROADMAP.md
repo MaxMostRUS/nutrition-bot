@@ -176,7 +176,7 @@ HERMES не является обязательным для текущего э
 - исправить auto-review и переводы;
 - довести каталог минимум до 300 активных рецептов с балансом breakfast/lunch/dinner и языками RU/EN/ES.
 
-Текущий статус: после serving/nutrition QA в production 191 рецепт `active`, 386 переведены в `quarantine`, 223 остаются `draft`. Planner использует только 191 активный рецепт; UniTools и неподтверждённые блюда не показываются пользователю до enrichment и повторной проверки. Следующий фокус — восстановить хорошие рецепты из карантина через подтверждённый вес порции и БЖУ, а не расширять каталог любой ценой.
+Текущий статус: после serving/nutrition QA и порогов плотности в production 126 рецептов `active`, 44 переведены в `quarantine`, 21 в `review`, 386 ранее помещены в `quarantine`, 223 остаются `draft`. Planner использует только 126 активных рецептов: до 250 ккал/100 г и до 15 г жиров/100 г. Следующий фокус — восстановить хорошие рецепты из карантина через подтверждённый вес порции и БЖУ, а не расширять каталог любой ценой.
 
 ### Этап C — качество меню
 
@@ -232,6 +232,7 @@ HERMES не является обязательным для текущего э
 | 2026-10-15 | Serving-basis invariant enforced in planner | Imported ingredient lists are batch-based while nutrition is per serving; planner now normalizes by `servings` before scaling and never renders missing portion weight as `0 г` |
 | 2026-10-15 | Quarantine instead of mass deletion | Preserve source provenance and recoverable recipes; only recipes failing serving, nutrition, or macro-calorie QA are removed from the active planner |
 | 2026-10-15 | Production serving QA applied | 386 recipes moved to `quarantine`, 191 remain active, 223 remain drafts; the planner stays imported-only and uses only recipes with a usable serving basis |
+| 2026-10-15 | Calorie and fat density gate | Active recipes are limited to 250 kcal/100 g and 15 g fat/100 g; 44 more recipes were quarantined and 21 moved to review |
 
 ## 11. Правило обновления документа
 
