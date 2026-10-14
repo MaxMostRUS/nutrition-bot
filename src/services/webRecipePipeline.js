@@ -415,6 +415,18 @@ function extractTemplateValue(wikitext, name) {
   return stripWikiMarkup(wikitext.match(pattern)?.[1] || '');
 }
 
+function extractTemplateBlockValue(wikitext, names) {
+  for (const name of names) {
+    const escaped = name.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\$&');
+    const match = String(wikitext || '').match(new RegExp(
+      `\\|\\s*${escaped}\\s*=\\s*([\\s\\S]*?)(?=\\n\\s*\\|\\s*[^\\n=|]+\\s*=|\\n?\\s*}})`,
+      'i'
+    ));
+    if (match?.[1]) return match[1].trim();
+  }
+  return '';
+}
+
 function extractFirstTemplateValue(wikitext, names) {
   for (const name of names) {
     const value = extractTemplateValue(wikitext, name);
@@ -463,7 +475,9 @@ function mapWikibooksRecipe(payload, source, candidate) {
     .replace(/^Cookbook:/i, '')
     .replace(/^Artes culinarias\/Recetas\//i, '')
     .trim();
-  const templateIngredients = extractFirstTemplateValue(wikitext, ['Ингредиенты', 'ingredients', 'ingredientes']);
+  const templateIngredients = extractTemplateBlockValue(wikitext, [
+    'Ингредиенты', 'ingredients', 'ingredientes', 'ingredientes necesarios'
+  ]) || extractFirstTemplateValue(wikitext, ['Ингредиенты', 'ingredients', 'ingredientes']);
   const ingredientSection = extractWikiSection(wikitext, [
     'Ингредиенты', 'Состав', 'Ingredients', 'Ingredient', 'Ingredientes'
   ]);
@@ -471,21 +485,30 @@ function mapWikibooksRecipe(payload, source, candidate) {
     'Приготовление',
     'Способ приготовления',
     'Процесс приготовления',
-    'Рецепт', 'Procedure', 'Directions', 'Preparation', 'Method', 'Preparación', 'Elaboración', 'Procedimiento'
+    'Рецепт', 'Procedure', 'Directions', 'Preparation', 'Method', 'Preparación', 'Elaboración', 'Procedimiento',
+    'procedimiento'
+  ]);
+  const templateInstructions = extractTemplateBlockValue(wikitext, [
+    'Приготовление', 'Способ приготовления', 'Процесс приготовления',
+    'Procedure', 'Directions', 'Preparation', 'Method', 'Preparación',
+    'Elaboración', 'Procedimiento', 'procedimiento'
   ]);
   const categoryIngredients = categoryRecords
     .filter((item) => !item.hidden)
     .map((item) => item.name)
     .filter((name) => !/кухня$|рецепт|блюда|кулинар|закуск|соус|суп|салат|десерт|выпечк|cuisine$|recipes?|cookbook|recetas?|cocina$|platos?|postres?/i.test(name));
+  const templateIngredientLines = templateIngredients ? wikiLines(templateIngredients) : [];
   const ingredients = ingredientSection
     ? wikiLines(ingredientSection)
-    : templateIngredients
-      ? templateIngredients.split(/[,;]+/).map(stripWikiMarkup).filter(Boolean)
-      : categoryIngredients;
+    : templateIngredientLines.length > 1
+      ? templateIngredientLines
+      : templateIngredients
+        ? templateIngredients.split(/[,;]+/).map(stripWikiMarkup).filter(Boolean)
+        : categoryIngredients;
   const fallbackInstructionSection = String(wikitext)
     .replace(/\{\{Рецепт[\s\S]*?\}\}/i, '')
     .match(/^==[^=].*?==\s*$([\s\S]*?)(?=^==[^=].*?==\s*$|(?![\s\S]))/im)?.[1] || '';
-  const instructions = wikiLines(instructionSection || fallbackInstructionSection);
+  const instructions = wikiLines(templateInstructions || instructionSection || fallbackInstructionSection);
   const cuisine = extractFirstTemplateValue(wikitext, ['Кухня', 'cuisine', 'cocina'])
     || categories.find((category) => /кухня$|cuisine$|cocina$/i.test(category))
     || null;
@@ -505,8 +528,8 @@ function mapWikibooksRecipe(payload, source, candidate) {
     title,
     description: wikiLines(wikitext.replace(/\{\{Рецепт[\s\S]*?\}\}/i, '').split(/^==/m)[0]).join(' ').slice(0, 1000),
     instructions,
-    servings: parseNumber(extractFirstTemplateValue(wikitext, ['Порций', 'servings', 'yield', 'porciones'])),
-    cookingTimeMinutes: parseDurationText(extractFirstTemplateValue(wikitext, ['Время', 'time', 'total time', 'tiempo'])),
+    servings: parseNumber(extractTemplateBlockValue(wikitext, ['Порций', 'comensales', 'servings', 'yield', 'porciones'])),
+    cookingTimeMinutes: parseDurationText(extractTemplateBlockValue(wikitext, ['Время', 'time', 'total time', 'tiempo'])),
     difficulty: extractFirstTemplateValue(wikitext, ['Сложность', 'difficulty', 'dificultad']) || null,
     cuisine,
     mealType: inferMealType(title, categories, source.mealType),

@@ -98,6 +98,36 @@ test('maps Russian Wikibooks revision and keeps attribution provenance', () => {
   assert.match(recipe.provenance.permalink, /oldid=12345/);
 });
 
+test('maps Spanish Wikibooks multiline recipe templates', () => {
+  const source = { ...reusableSource, language: 'es', sourceTitle: 'Wikilibros', license: 'CC-BY-SA-4.0' };
+  const recipe = mapWikibooksRecipe({
+    parse: {
+      title: 'Artes culinarias/Recetas/Alajú',
+      revid: 123,
+      categories: [{ category: 'Categoría:Recetas' }],
+      wikitext: `{{Artes culinarias/Datos de receta
+| comensales= 4
+| tiempo = 1 hora aproximadamente.
+| ingredientes =
+*250 g de miel.
+*150 g de almendras tostadas.
+| procedimiento =
+# Triturar las almendras.
+# Mezclar y cocer durante diez minutos.
+}}`
+    }
+  }, source, {
+    pageId: 1,
+    url: 'https://es.wikibooks.org/wiki/Artes_culinarias/Recetas/Alaj%C3%BA',
+    discoveredAt: '2026-01-01T00:00:00.000Z'
+  });
+
+  assert.equal(recipe.ingredients.length, 2);
+  assert.equal(recipe.instructions.length, 2);
+  assert.equal(recipe.servings, 4);
+  assert.equal(recipe.cookingTimeMinutes, 60);
+});
+
 test('critical QA is separate from optional completeness warnings', () => {
   const quality = assessRecipeQuality({
     title: 'Real recipe',
