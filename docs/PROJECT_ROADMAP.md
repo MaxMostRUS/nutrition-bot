@@ -176,7 +176,7 @@ HERMES не является обязательным для текущего э
 - исправить auto-review и переводы;
 - довести каталог минимум до 300 активных рецептов с балансом breakfast/lunch/dinner и языками RU/EN/ES.
 
-Текущий статус: PDF и UniTools импортированы в production. В каталоге 577 активных рецептов: breakfast 72, lunch 261, dinner 244. Deep Research Agent также нашёл 335 RU/EN/ES кандидатов, но без полного БЖУ они остаются `draft`. Следующий фокус — безопасный web import, дедупликация и выравнивание языков/типов блюд.
+Текущий статус: после serving/nutrition QA в production 191 рецепт `active`, 386 переведены в `quarantine`, 223 остаются `draft`. Planner использует только 191 активный рецепт; UniTools и неподтверждённые блюда не показываются пользователю до enrichment и повторной проверки. Следующий фокус — восстановить хорошие рецепты из карантина через подтверждённый вес порции и БЖУ, а не расширять каталог любой ценой.
 
 ### Этап C — качество меню
 
@@ -231,6 +231,7 @@ HERMES не является обязательным для текущего э
 | 2026-10-14 | Public-domain cookbook audit before extraction | 4 Project Gutenberg books confirmed public domain in the USA, but kept as candidates until book-specific structure parsers are reviewed |
 | 2026-10-15 | Serving-basis invariant enforced in planner | Imported ingredient lists are batch-based while nutrition is per serving; planner now normalizes by `servings` before scaling and never renders missing portion weight as `0 г` |
 | 2026-10-15 | Quarantine instead of mass deletion | Preserve source provenance and recoverable recipes; only recipes failing serving, nutrition, or macro-calorie QA are removed from the active planner |
+| 2026-10-15 | Production serving QA applied | 386 recipes moved to `quarantine`, 191 remain active, 223 remain drafts; the planner stays imported-only and uses only recipes with a usable serving basis |
 
 ## 11. Правило обновления документа
 
