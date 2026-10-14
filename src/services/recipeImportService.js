@@ -44,7 +44,7 @@ function normalizeSourceUrl(value) {
 
 function normalizeStatus(value) {
   const status = normalizeText(value || 'draft').toLowerCase();
-  return ['draft', 'review', 'active', 'rejected'].includes(status) ? status : 'draft';
+  return ['draft', 'review', 'active', 'quarantine', 'rejected'].includes(status) ? status : 'draft';
 }
 
 function normalizeMealType(mealType, title = '', tags = []) {

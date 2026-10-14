@@ -14,6 +14,7 @@
     "prepare:usda-foods": "node src/scripts/prepareUsdaFoodDatabase.js",
     "research:books": "node src/scripts/auditPublicDomainCookbooks.js",
     "dedupe:recipes": "node src/scripts/dedupeRecipes.js",
+    "quarantine:recipes": "node src/scripts/quarantineComplexRecipes.js",
     "test": "node --test test/*.test.js"
   },
   "keywords": [],
