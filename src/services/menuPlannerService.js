@@ -78,6 +78,29 @@ function scoreDiversityPenalty(recipe, context) {
   return penalty;
 }
 
+function getScaledPortionWeight(recipe, targetCalories) {
+  const calories = Number(recipe.nutrition?.calories);
+  const portionWeight = Number(recipe.nutrition?.portionWeight);
+  if (!Number.isFinite(calories) || calories <= 0 || !Number.isFinite(portionWeight) || portionWeight <= 0) {
+    return null;
+  }
+
+  const rawScale = Number(targetCalories || 0) / calories;
+  const scale = Math.max(0.25, Math.min(rawScale || 1, 4));
+  return portionWeight * scale;
+}
+
+function scorePortionFit(recipe, targetCalories) {
+  const scaledWeight = getScaledPortionWeight(recipe, targetCalories);
+  if (scaledWeight === null) return 500;
+
+  // Prefer a normal plate, but keep the recipe available if the catalog is
+  // temporarily small. A meal that needs more than 500 g gets a strong penalty.
+  if (scaledWeight > 500) return 1000 + (scaledWeight - 500) * 5;
+  if (scaledWeight < 250) return (250 - scaledWeight) * 2;
+  return 0;
+}
+
 function updateSelectionContext(context, recipe, mealTime) {
   context.usedRecipeIds.add(recipe.id);
   context.titleCounts.set(recipe.title || '', (context.titleCounts.get(recipe.title || '') || 0) + 1);
@@ -182,7 +205,9 @@ async function chooseRecipeForMeal(profile, mealTime, targets, context) {
   const best = candidates
     .map((candidate) => ({
       candidate,
-      totalScore: candidate.score + scoreDiversityPenalty(candidate, context)
+      totalScore: candidate.score
+        + scoreDiversityPenalty(candidate, context)
+        + scorePortionFit(candidate, targets.calories)
     }))
     .sort((a, b) => a.totalScore - b.totalScore)[0]?.candidate;
 
@@ -290,5 +315,7 @@ async function planWeeklyMenu({ userId, dailyCalories, protein, fat, carbs }) {
 module.exports = {
   planWeeklyMenu,
   buildMealTargets,
-  convertRecipeToMeal
+  convertRecipeToMeal,
+  getScaledPortionWeight,
+  scorePortionFit
 };

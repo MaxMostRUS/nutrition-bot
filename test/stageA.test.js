@@ -2,7 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 
 const { calculateMacros } = require('../src/services/macrosService');
-const { convertRecipeToMeal } = require('../src/services/menuPlannerService');
+const { convertRecipeToMeal, getScaledPortionWeight, scorePortionFit } = require('../src/services/menuPlannerService');
 
 test('weight-loss macros keep fat tied to body weight and carbs use the remainder', () => {
   const macros = calculateMacros({ calories: 2200, weight: 97, goal: 'lose' });
@@ -80,4 +80,14 @@ test('planner does not turn an unknown portion weight into zero grams', () => {
 
   assert.equal(meal.portionWeight, null);
   assert.equal(meal.recipe.nutrition.portionWeight, null);
+});
+
+test('planner prefers a normal plate size after calorie scaling', () => {
+  const recipe = {
+    nutrition: { calories: 400, portionWeight: 100 }
+  };
+
+  assert.equal(getScaledPortionWeight(recipe, 800), 200);
+  assert.equal(scorePortionFit(recipe, 800), 100);
+  assert.ok(scorePortionFit({ nutrition: { calories: 800, portionWeight: 400 } }, 800) < scorePortionFit(recipe, 800));
 });
