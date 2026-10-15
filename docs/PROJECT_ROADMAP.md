@@ -233,6 +233,7 @@ HERMES не является обязательным для текущего э
 | 2026-10-15 | Quarantine instead of mass deletion | Preserve source provenance and recoverable recipes; only recipes failing serving, nutrition, or macro-calorie QA are removed from the active planner |
 | 2026-10-15 | Production serving QA applied | 386 recipes moved to `quarantine`, 191 remain active, 223 remain drafts; the planner stays imported-only and uses only recipes with a usable serving basis |
 | 2026-10-15 | Calorie and fat density gate | Active recipes are limited to 250 kcal/100 g and 15 g fat/100 g; 44 more recipes were quarantined and 21 moved to review |
+| 2026-10-15 | Macro-profile recipe selection | Calorie matching alone produced menus with incorrect total P/F/C; planner now scores each candidate after portion scaling against the user's protein, fat, and carbohydrate targets |
 
 ## 11. Правило обновления документа
 
