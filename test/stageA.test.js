@@ -2,7 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 
 const { calculateMacros } = require('../src/services/macrosService');
-const { convertRecipeToMeal, getScaledPortionWeight, scorePortionFit } = require('../src/services/menuPlannerService');
+const { convertRecipeToMeal, getScaledPortionWeight, scorePortionFit, scoreMacroFit } = require('../src/services/menuPlannerService');
 
 test('weight-loss macros keep fat tied to body weight and carbs use the remainder', () => {
   const macros = calculateMacros({ calories: 2200, weight: 97, goal: 'lose' });
@@ -90,4 +90,12 @@ test('planner prefers a normal plate size after calorie scaling', () => {
   assert.equal(getScaledPortionWeight(recipe, 800), 200);
   assert.equal(scorePortionFit(recipe, 800), 100);
   assert.ok(scorePortionFit({ nutrition: { calories: 800, portionWeight: 400 } }, 800) < scorePortionFit(recipe, 800));
+});
+
+test('planner scores macro profile after calorie scaling', () => {
+  const targets = { calories: 700, protein: 50, fat: 18, carbs: 88 };
+  const balanced = { nutrition: { calories: 350, protein: 25, fat: 9, carbs: 44 } };
+  const highFat = { nutrition: { calories: 350, protein: 25, fat: 18, carbs: 24 } };
+
+  assert.ok(scoreMacroFit(balanced, targets) < scoreMacroFit(highFat, targets));
 });

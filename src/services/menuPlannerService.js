@@ -101,6 +101,30 @@ function scorePortionFit(recipe, targetCalories) {
   return 0;
 }
 
+function scoreMacroFit(recipe, targets) {
+  const calories = Number(recipe.nutrition?.calories);
+  if (!Number.isFinite(calories) || calories <= 0) return 10;
+
+  const scale = Number(targets.calories || 0) / calories;
+  const predicted = {
+    protein: Number(recipe.nutrition?.protein || 0) * scale,
+    fat: Number(recipe.nutrition?.fat || 0) * scale,
+    carbs: Number(recipe.nutrition?.carbs || 0) * scale
+  };
+
+  // Compare the recipe's macro profile after calorie scaling. Raw recipe
+  // macros are not comparable when recipes have different base calories.
+  const relativeError = (field, weight) => {
+    const target = Number(targets[field] || 0);
+    if (target <= 0) return 0;
+    return Math.abs(predicted[field] - target) / target * weight;
+  };
+
+  return relativeError('protein', 1.2)
+    + relativeError('fat', 1.8)
+    + relativeError('carbs', 1);
+}
+
 function updateSelectionContext(context, recipe, mealTime) {
   context.usedRecipeIds.add(recipe.id);
   context.titleCounts.set(recipe.title || '', (context.titleCounts.get(recipe.title || '') || 0) + 1);
@@ -120,7 +144,7 @@ function buildCandidateFilter(profile, mealTime, targets, excludedRecipeIds) {
     status: 'active',
     mealType: mealTime,
     limit: 25,
-    top: 10,
+    top: 25,
     excludeRecipeIds: excludedRecipeIds,
     maxCookingTimeMinutes: profile?.cookingTimeLimit
       ? profile.cookingTimeLimit + cookingTimeGrace
@@ -205,9 +229,10 @@ async function chooseRecipeForMeal(profile, mealTime, targets, context) {
   const best = candidates
     .map((candidate) => ({
       candidate,
-      totalScore: candidate.score
+      totalScore: candidate.score * 0.2
         + scoreDiversityPenalty(candidate, context)
         + scorePortionFit(candidate, targets.calories)
+        + scoreMacroFit(candidate, targets) * 300
     }))
     .sort((a, b) => a.totalScore - b.totalScore)[0]?.candidate;
 
@@ -317,5 +342,6 @@ module.exports = {
   buildMealTargets,
   convertRecipeToMeal,
   getScaledPortionWeight,
-  scorePortionFit
+  scorePortionFit,
+  scoreMacroFit
 };
